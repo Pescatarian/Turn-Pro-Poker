@@ -1,8 +1,7 @@
-"""User model for authentication and subscription management."""
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, List
 from sqlalchemy import String, Boolean, DateTime, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
@@ -16,14 +15,12 @@ if TYPE_CHECKING:
 
 
 class SubscriptionTier(str, enum.Enum):
-    """Subscription tiers for feature gating."""
     FREE = "free"
     PREMIUM = "premium"
     PRO = "pro"
 
 
 class User(Base):
-    """User account model."""
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -33,42 +30,28 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     subscription_tier: Mapped[SubscriptionTier] = mapped_column(
-        SQLEnum(SubscriptionTier),
-        default=SubscriptionTier.FREE
+        SQLEnum(SubscriptionTier), default=SubscriptionTier.FREE
     )
     subscription_expires_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True
+        DateTime(timezone=True), nullable=True
     )
     stripe_customer_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=datetime.utcnow
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
     sessions: Mapped[List["Session"]] = relationship(
-        "Session",
-        back_populates="user",
-        cascade="all, delete-orphan"
+        "Session", back_populates="user", cascade="all, delete-orphan"
     )
     transactions: Mapped[List["Transaction"]] = relationship(
-        "Transaction",
-        back_populates="user",
-        cascade="all, delete-orphan"
+        "Transaction", back_populates="user", cascade="all, delete-orphan"
     )
     hands: Mapped[List["Hand"]] = relationship(
-        "Hand",
-        back_populates="user",
-        cascade="all, delete-orphan"
+        "Hand", back_populates="user", cascade="all, delete-orphan"
     )
 
     def is_subscription_active(self) -> bool:
-        """Check if user has an active paid subscription."""
         if self.subscription_tier == SubscriptionTier.FREE:
             return True
         if self.subscription_expires_at is None:

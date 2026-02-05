@@ -1,53 +1,41 @@
-"""FastAPI application entry point."""
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 
-from app.api.v1.router import api_router
 from app.core.config import settings
-from app.db.session import engine
 from app.db.base import Base
+from app.db.session import engine
+from app.models import User, Session, Transaction, Hand
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan events for startup/shutdown."""
-    # Import models to register them with Base.metadata
-    from app.models import User, Session, Transaction, Hand
-    
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
     await engine.dispose()
 
 
-def create_application() -> FastAPI:
-    """Application factory pattern."""
-    application = FastAPI(
-        title=settings.PROJECT_NAME,
-        description="Live Poker Bankroll Management API",
-        version="0.1.0",
-        openapi_url=f"{settings.API_V1_STR}/openapi.json",
-        lifespan=lifespan,
-    )
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    lifespan=lifespan,
+)
 
-    application.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.ALLOWED_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-    application.include_router(api_router, prefix=settings.API_V1_STR)
-
-    return application
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-app = create_application()
+@app.get("/")
+async def root():
+    return {"message": "Turn Pro Poker API", "version": settings.VERSION}
 
 
 @app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "version": "0.1.0"}
+async def health():
+    return {"status": "healthy"}

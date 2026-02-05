@@ -1,4 +1,3 @@
-"""Bankroll transaction model."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,24 +14,21 @@ if TYPE_CHECKING:
 
 
 class TransactionType(str, enum.Enum):
-    """Types of bankroll transactions."""
     DEPOSIT = "deposit"
     WITHDRAWAL = "withdrawal"
+    ADJUSTMENT = "adjustment"
 
 
 class Transaction(Base):
-    """Bankroll transaction model."""
     __tablename__ = "transactions"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    transaction_type: Mapped[TransactionType] = mapped_column(SQLEnum(TransactionType))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    
+    type: Mapped[TransactionType] = mapped_column(SQLEnum(TransactionType))
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=datetime.utcnow,
-        index=True
-    )
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     user: Mapped["User"] = relationship("User", back_populates="transactions")

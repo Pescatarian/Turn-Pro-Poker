@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,51 +7,83 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, fontSize, borderRadius } from '../constants/theme';
 import { PlusIcon } from '../components/icons';
+import { Hand } from '../types';
 
 export function HandsScreen() {
-  // TODO: Load hands from store
-  const hands: any[] = [];
+  const navigation = useNavigation();
+  const [hands, setHands] = useState<Hand[]>([]);
+
+  const renderHand = ({ item }: { item: Hand }) => {
+    const heroCardsDisplay = item.heroCards?.join(' ') || '? ?';
+    const communityDisplay = item.communityCards?.join(' ') || '';
+
+    return (
+      <TouchableOpacity style={styles.handCard}>
+        <View style={styles.handHeader}>
+          <View style={styles.cardsDisplay}>
+            <Text style={styles.heroCards}>{heroCardsDisplay}</Text>
+          </View>
+          <Text style={styles.handPot}>${item.pot}</Text>
+        </View>
+        {communityDisplay && (
+          <Text style={styles.communityCards}>{communityDisplay}</Text>
+        )}
+        <View style={styles.handMeta}>
+          <Text style={styles.handDate}>
+            {new Date(item.date).toLocaleDateString()}
+          </Text>
+          <Text style={styles.handStreet}>{item.street}</Text>
+          <Text style={styles.handActions}>{item.actions?.length || 0} actions</Text>
+        </View>
+        {item.notes && (
+          <Text style={styles.handNotes} numberOfLines={2}>{item.notes}</Text>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Hands</Text>
-        <TouchableOpacity style={styles.addButton}>
+        <View>
+          <Text style={styles.title}>Hands</Text>
+          <Text style={styles.subtitle}>{hands.length} recorded</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => navigation.navigate('HandReplayer' as never)}
+        >
           <PlusIcon color="#052018" size={20} />
-          <Text style={styles.addButtonText}>Add Hand</Text>
+          <Text style={styles.addButtonText}>New Hand</Text>
         </TouchableOpacity>
       </View>
 
       {hands.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIcon}>
-            <PlusIcon color={colors.muted} size={48} />
+            <Text style={styles.emptyIconText}>🃏</Text>
           </View>
           <Text style={styles.emptyTitle}>No hands recorded</Text>
           <Text style={styles.emptySubtext}>
-            Tap + Add Hand to record your first hand
+            Use the Hand Replayer to record and analyze your poker hands
           </Text>
+          <TouchableOpacity
+            style={styles.emptyButton}
+            onPress={() => navigation.navigate('HandReplayer' as never)}
+          >
+            <Text style={styles.emptyButtonText}>Record First Hand</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
           data={hands}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.handCard}>
-              <View style={styles.handHeader}>
-                <Text style={styles.handPot}>Pot: ${item.pot}</Text>
-                <Text style={styles.handDate}>
-                  {new Date(item.date).toLocaleDateString()}
-                </Text>
-              </View>
-              <Text style={styles.handDetails}>
-                {item.actions?.length || 0} actions • {item.street}
-              </Text>
-            </TouchableOpacity>
-          )}
+          renderItem={renderHand}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </SafeAreaView>
@@ -74,6 +106,11 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xxl,
     fontWeight: '800',
     color: colors.white,
+  },
+  subtitle: {
+    fontSize: fontSize.sm,
+    color: colors.muted,
+    marginTop: 2,
   },
   addButton: {
     flexDirection: 'row',
@@ -105,20 +142,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  cardsDisplay: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  heroCards: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    color: colors.white,
   },
   handPot: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    color: colors.accent,
+  },
+  communityCards: {
     fontSize: fontSize.md,
-    fontWeight: '600',
-    color: colors.white,
+    color: colors.muted,
+    marginBottom: spacing.sm,
+  },
+  handMeta: {
+    flexDirection: 'row',
+    gap: spacing.md,
   },
   handDate: {
     fontSize: fontSize.sm,
     color: colors.muted,
   },
-  handDetails: {
+  handStreet: {
+    fontSize: fontSize.sm,
+    color: colors.accent,
+    textTransform: 'capitalize',
+  },
+  handActions: {
     fontSize: fontSize.sm,
     color: colors.muted,
-    marginTop: 4,
+  },
+  handNotes: {
+    fontSize: fontSize.sm,
+    color: colors.muted,
+    marginTop: spacing.sm,
+    fontStyle: 'italic',
   },
   empty: {
     flex: 1,
@@ -127,18 +193,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   emptyIcon: {
-    marginBottom: spacing.md,
-    opacity: 0.5,
+    marginBottom: spacing.lg,
+  },
+  emptyIconText: {
+    fontSize: 64,
   },
   emptyTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontSize: fontSize.xl,
+    fontWeight: '700',
     color: colors.white,
-    marginBottom: 4,
+    marginBottom: spacing.sm,
   },
   emptySubtext: {
-    fontSize: fontSize.sm,
+    fontSize: fontSize.md,
     color: colors.muted,
     textAlign: 'center',
+    marginBottom: spacing.lg,
+    lineHeight: 22,
+  },
+  emptyButton: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+  },
+  emptyButtonText: {
+    color: '#052018',
+    fontWeight: '700',
+    fontSize: fontSize.md,
   },
 });

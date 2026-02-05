@@ -10,6 +10,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { SessionsScreen } from '../screens/SessionsScreen';
 import { AddSessionScreen } from '../screens/AddSessionScreen';
 import { HandsScreen } from '../screens/HandsScreen';
+import { HandReplayerScreen } from '../screens/HandReplayerScreen';
 import { MoreScreen } from '../screens/MoreScreen';
 
 // Icons
@@ -78,6 +79,7 @@ export function Navigation() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Main" component={TabNavigator} />
+        <Stack.Screen name="HandReplayer" component={HandReplayerScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

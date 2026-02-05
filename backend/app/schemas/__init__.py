@@ -1,12 +1,4 @@
-"""Pydantic schemas for request/response validation."""
-from app.schemas.user import UserCreate, UserResponse, UserLogin, Token, TokenRefresh
-from app.schemas.session import SessionCreate, SessionUpdate, SessionResponse
-from app.schemas.transaction import TransactionCreate, TransactionResponse
-from app.schemas.stats import StatsResponse
+from app.schemas.user import UserCreate, UserUpdate, UserResponse
+from app.schemas.token import Token, TokenPayload
 
-__all__ = [
-    "UserCreate", "UserResponse", "UserLogin", "Token", "TokenRefresh",
-    "SessionCreate", "SessionUpdate", "SessionResponse",
-    "TransactionCreate", "TransactionResponse",
-    "StatsResponse",
-]
+__all__ = ["UserCreate", "UserUpdate", "UserResponse", "Token", "TokenPayload"]

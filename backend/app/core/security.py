@@ -21,7 +21,7 @@ ALGORITHM = "HS256"
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash.
     
-    WHY: Truncate to 72 bytes - bcrypt limitation, passlib bug workaround.
+    WHY: Truncate to 72 bytes - bcrypt limitation.
     """
     return pwd_context.verify(plain_password[:72], hashed_password)
 
@@ -29,7 +29,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     """Hash a password for storage.
     
-    WHY: Truncate to 72 bytes - bcrypt has a max password length.
+    WHY: Truncate to 72 bytes - bcrypt has a max password length of 72 bytes.
     """
     return pwd_context.hash(password[:72])
 

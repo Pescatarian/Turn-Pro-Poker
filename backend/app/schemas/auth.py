@@ -1,5 +1,18 @@
-"""Authentication schemas for Turn Pro Poker."""
-from pydantic import BaseModel
+"""Authentication request/response schemas."""
+from pydantic import BaseModel, EmailStr
+
+
+class LoginRequest(BaseModel):
+    """Login credentials."""
+    email: EmailStr
+    password: str
+
+
+class RegisterRequest(BaseModel):
+    """Registration data."""
+    email: EmailStr
+    password: str
+    username: str | None = None
 
 
 class Token(BaseModel):

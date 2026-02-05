@@ -1,8 +1,4 @@
-"""API dependencies.
-
-WHY: Reusable dependencies for authentication and authorization.
-This ensures consistent security checks across all protected endpoints.
-"""
+"""API dependencies."""
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +8,6 @@ from app.db.session import get_db
 from app.models.user import User, SubscriptionTier
 from app.core.security import decode_token
 
-# Bearer token security scheme
 security = HTTPBearer()
 
 
@@ -20,7 +15,7 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db)
 ) -> User:
-    """Dependency to get the current authenticated user."""
+    """Get the current authenticated user."""
     token = credentials.credentials
     payload = decode_token(token)
     
@@ -37,40 +32,28 @@ async def get_current_user(
             detail="Invalid token payload"
         )
     
-    result = await db.execute(
-        select(User).where(User.id == int(user_id))
-    )
+    result = await db.execute(select(User).where(User.id == int(user_id)))
     user = result.scalar_one_or_none()
     
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
     if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is deactivated"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User account is deactivated")
     
     return user
 
 
-async def get_premium_user(
-    current_user: User = Depends(get_current_user)
-) -> User:
-    """Dependency to require premium subscription."""
+async def get_premium_user(current_user: User = Depends(get_current_user)) -> User:
+    """Require premium subscription."""
     if current_user.subscription_tier == SubscriptionTier.FREE:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Premium subscription required"
         )
-    
     if not current_user.is_subscription_active():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Subscription expired"
         )
-    
     return current_user

@@ -39,7 +39,7 @@ Thumbs.db
 *.log
 logs/
 
-# Node (for frontend)
+# Node
 node_modules/
 npm-debug.log
 yarn-error.log

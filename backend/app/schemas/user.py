@@ -1,8 +1,4 @@
-"""User schemas for request/response validation.
-
-WHY: Pydantic schemas separate API contracts from database models.
-This allows different representations for create, update, and response.
-"""
+"""User schemas for request/response validation."""
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
@@ -24,7 +20,7 @@ class UserLogin(BaseModel):
 
 
 class UserResponse(BaseModel):
-    """Schema for user response (excludes sensitive data)."""
+    """Schema for user response."""
     id: int
     email: str
     display_name: Optional[str]

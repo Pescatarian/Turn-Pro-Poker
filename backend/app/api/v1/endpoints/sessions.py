@@ -1,13 +1,9 @@
-"""Session tracking endpoints.
-
-WHY: Sessions are the primary data for bankroll tracking.
-CRUD operations with proper user scoping ensure data isolation.
-"""
+"""Session tracking endpoints."""
 from typing import List, Optional
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
-from datetime import date
 
 from app.db.session import get_db
 from app.models.user import User
@@ -25,15 +21,10 @@ async def create_session(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new poker session."""
-    session = Session(
-        user_id=current_user.id,
-        **session_data.model_dump()
-    )
-    
+    session = Session(user_id=current_user.id, **session_data.model_dump())
     db.add(session)
     await db.commit()
     await db.refresh(session)
-    
     return session
 
 
@@ -48,11 +39,8 @@ async def get_sessions(
     current_user: User = Depends(get_current_user)
 ):
     """Get user's sessions with optional filters."""
-    query = select(Session).where(
-        Session.user_id == current_user.id
-    ).order_by(desc(Session.session_date))
+    query = select(Session).where(Session.user_id == current_user.id).order_by(desc(Session.session_date))
     
-    # Apply filters
     if start_date:
         query = query.where(Session.session_date >= start_date)
     if end_date:
@@ -61,7 +49,6 @@ async def get_sessions(
         query = query.where(Session.location.ilike(f"%{location}%"))
     
     query = query.offset(skip).limit(limit)
-    
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -74,19 +61,11 @@ async def get_session(
 ):
     """Get a specific session by ID."""
     result = await db.execute(
-        select(Session).where(
-            Session.id == session_id,
-            Session.user_id == current_user.id
-        )
+        select(Session).where(Session.id == session_id, Session.user_id == current_user.id)
     )
     session = result.scalar_one_or_none()
-    
     if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     return session
 
 
@@ -99,27 +78,18 @@ async def update_session(
 ):
     """Update a session."""
     result = await db.execute(
-        select(Session).where(
-            Session.id == session_id,
-            Session.user_id == current_user.id
-        )
+        select(Session).where(Session.id == session_id, Session.user_id == current_user.id)
     )
     session = result.scalar_one_or_none()
-    
     if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     
-    # Update only provided fields
     update_data = session_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(session, field, value)
     
     await db.commit()
     await db.refresh(session)
-    
     return session
 
 
@@ -131,18 +101,10 @@ async def delete_session(
 ):
     """Delete a session."""
     result = await db.execute(
-        select(Session).where(
-            Session.id == session_id,
-            Session.user_id == current_user.id
-        )
+        select(Session).where(Session.id == session_id, Session.user_id == current_user.id)
     )
     session = result.scalar_one_or_none()
-    
     if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     await db.delete(session)
     await db.commit()

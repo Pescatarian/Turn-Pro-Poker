@@ -1,8 +1,4 @@
-"""FastAPI application entry point.
-
-WHY: Central configuration for the API, middleware, and route registration.
-This follows the factory pattern for testability and flexibility.
-"""
+"""FastAPI application entry point."""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -16,18 +12,18 @@ from app.db.base import Base
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events for startup/shutdown."""
-    # Startup: Create tables if they don't exist (dev only)
-    # In production, use Alembic migrations
+    # Import models to register them with Base.metadata
+    from app.models import User, Session, Transaction, Hand
+    
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
-    # Shutdown: cleanup if needed
     await engine.dispose()
 
 
 def create_application() -> FastAPI:
-    """Application factory pattern for creating FastAPI instance."""
-    app = FastAPI(
+    """Application factory pattern."""
+    application = FastAPI(
         title=settings.PROJECT_NAME,
         description="Live Poker Bankroll Management API",
         version="0.1.0",
@@ -35,8 +31,7 @@ def create_application() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS middleware for frontend communication
-    app.add_middleware(
+    application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.ALLOWED_ORIGINS,
         allow_credentials=True,
@@ -44,10 +39,9 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Include API routes
-    app.include_router(api_router, prefix=settings.API_V1_STR)
+    application.include_router(api_router, prefix=settings.API_V1_STR)
 
-    return app
+    return application
 
 
 app = create_application()
@@ -55,5 +49,5 @@ app = create_application()
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for monitoring."""
+    """Health check endpoint."""
     return {"status": "healthy", "version": "0.1.0"}

@@ -1,51 +1,35 @@
-"""Poker session model for tracking live poker sessions.
+"""Poker session model for tracking live poker sessions."""
+from __future__ import annotations
 
-WHY: Sessions are the core data unit for bankroll tracking.
-All financial calculations derive from session data.
-We use Decimal for money to avoid floating point errors.
-"""
 from datetime import datetime, date
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Date, DateTime, ForeignKey, Numeric, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
+if TYPE_CHECKING:
+    from app.models.user import User
+
 
 class Session(Base):
-    """Poker session tracking model.
-    
-    Represents a single live poker session with all relevant metrics
-    for bankroll management and performance analysis.
-    """
+    """Poker session tracking model."""
     __tablename__ = "sessions"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    
-    # Session details
     session_date: Mapped[date] = mapped_column(Date, index=True)
     location: Mapped[str] = mapped_column(String(255))
-    game_type: Mapped[str] = mapped_column(String(50), default="cash")  # cash, tournament
-    
-    # Stakes - using Decimal for accurate money handling
+    game_type: Mapped[str] = mapped_column(String(50), default="cash")
     small_blind: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("1.00"))
     big_blind: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    
-    # Financial data - Decimal prevents floating point errors
     buy_in: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     cash_out: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     tips: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
     expenses: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
-    
-    # Time tracking
     hours_played: Mapped[Decimal] = mapped_column(Numeric(5, 2))
-    
-    # Notes
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
-    # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow
@@ -55,8 +39,7 @@ class Session(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow
     )
-    
-    # Relationships
+
     user: Mapped["User"] = relationship("User", back_populates="sessions")
 
     @property

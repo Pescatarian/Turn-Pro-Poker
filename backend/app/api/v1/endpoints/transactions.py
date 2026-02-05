@@ -1,8 +1,4 @@
-"""Bankroll transaction endpoints.
-
-WHY: Transactions track deposits/withdrawals separately from session results.
-This provides accurate bankroll history for auditing and analysis.
-"""
+"""Bankroll transaction endpoints."""
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,15 +20,10 @@ async def create_transaction(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new bankroll transaction."""
-    transaction = Transaction(
-        user_id=current_user.id,
-        **transaction_data.model_dump()
-    )
-    
+    transaction = Transaction(user_id=current_user.id, **transaction_data.model_dump())
     db.add(transaction)
     await db.commit()
     await db.refresh(transaction)
-    
     return transaction
 
 
@@ -68,12 +59,7 @@ async def delete_transaction(
         )
     )
     transaction = result.scalar_one_or_none()
-    
     if not transaction:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transaction not found"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
     await db.delete(transaction)
     await db.commit()

@@ -1,16 +1,12 @@
-"""Session schemas for request/response validation.
-
-WHY: Strict validation ensures data integrity for financial calculations.
-Using Decimal strings prevents JSON serialization issues with Decimal.
-"""
+"""Session schemas for request/response validation."""
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class SessionBase(BaseModel):
-    """Base session schema with shared fields."""
+    """Base session schema."""
     session_date: date
     location: str = Field(..., max_length=255)
     game_type: str = Field(default="cash", max_length=50)
@@ -23,13 +19,6 @@ class SessionBase(BaseModel):
     hours_played: Decimal = Field(..., gt=0)
     notes: Optional[str] = None
 
-    @field_validator('big_blind')
-    @classmethod
-    def validate_big_blind(cls, v, info):
-        """Ensure big blind is greater than small blind."""
-        # Note: Cross-field validation would need model_validator
-        return v
-
 
 class SessionCreate(SessionBase):
     """Schema for creating a new session."""
@@ -37,7 +26,7 @@ class SessionCreate(SessionBase):
 
 
 class SessionUpdate(BaseModel):
-    """Schema for updating a session (all fields optional)."""
+    """Schema for updating a session."""
     session_date: Optional[date] = None
     location: Optional[str] = Field(None, max_length=255)
     game_type: Optional[str] = Field(None, max_length=50)
@@ -52,7 +41,7 @@ class SessionUpdate(BaseModel):
 
 
 class SessionResponse(SessionBase):
-    """Schema for session response with computed fields."""
+    """Schema for session response."""
     id: int
     user_id: int
     profit: Decimal

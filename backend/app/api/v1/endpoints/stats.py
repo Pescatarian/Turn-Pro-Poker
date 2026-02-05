@@ -1,9 +1,4 @@
-"""Statistics and analytics endpoints.
-
-WHY: Pre-calculated statistics reduce client-side processing
-and ensure consistent calculations across all platforms.
-These are the core metrics for bankroll management.
-"""
+"""Statistics and analytics endpoints."""
 from decimal import Decimal
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +13,7 @@ from app.api.deps import get_current_user
 
 router = APIRouter()
 
-HANDS_PER_HOUR = 25  # Standard for live poker
+HANDS_PER_HOUR = 25
 
 
 @router.get("/", response_model=StatsResponse)
@@ -26,36 +21,24 @@ async def get_stats(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get comprehensive statistics for the current user."""
-    
-    # Get all sessions for calculations
-    result = await db.execute(
-        select(Session).where(Session.user_id == current_user.id)
-    )
+    """Get comprehensive statistics."""
+    result = await db.execute(select(Session).where(Session.user_id == current_user.id))
     sessions = result.scalars().all()
     
-    # Get transactions for bankroll calculation
     deposits_result = await db.execute(
         select(func.sum(Transaction.amount))
-        .where(
-            Transaction.user_id == current_user.id,
-            Transaction.transaction_type == TransactionType.DEPOSIT
-        )
+        .where(Transaction.user_id == current_user.id, Transaction.transaction_type == TransactionType.DEPOSIT)
     )
     total_deposits = deposits_result.scalar() or Decimal("0")
     
     withdrawals_result = await db.execute(
         select(func.sum(Transaction.amount))
-        .where(
-            Transaction.user_id == current_user.id,
-            Transaction.transaction_type == TransactionType.WITHDRAWAL
-        )
+        .where(Transaction.user_id == current_user.id, Transaction.transaction_type == TransactionType.WITHDRAWAL)
     )
     total_withdrawals = withdrawals_result.scalar() or Decimal("0")
     
     initial_bankroll = total_deposits - total_withdrawals
     
-    # Calculate session stats
     if not sessions:
         return StatsResponse(
             total_sessions=0,
@@ -76,7 +59,6 @@ async def get_stats(
             initial_bankroll=initial_bankroll
         )
     
-    # Aggregate calculations
     total_profit = sum(s.profit for s in sessions)
     total_tips = sum(s.tips for s in sessions)
     total_expenses = sum(s.expenses for s in sessions)
@@ -84,16 +66,13 @@ async def get_stats(
     total_hours = sum(s.hours_played for s in sessions)
     total_hands = total_hours * HANDS_PER_HOUR
     
-    # BB calculations
     total_bb_won = sum(s.bb_won for s in sessions)
     tips_in_bb = sum(s.tips / s.big_blind for s in sessions if s.big_blind > 0)
     expenses_in_bb = sum(s.expenses / s.big_blind for s in sessions if s.big_blind > 0)
     
-    # Winrate calculations
     bb_per_100 = (total_bb_won / total_hands * 100) if total_hands > 0 else Decimal("0")
     net_bb_per_100 = ((total_bb_won - tips_in_bb - expenses_in_bb) / total_hands * 100) if total_hands > 0 else Decimal("0")
     
-    # Session counts
     winning_sessions = sum(1 for s in sessions if s.profit > 0)
     losing_sessions = sum(1 for s in sessions if s.profit < 0)
     

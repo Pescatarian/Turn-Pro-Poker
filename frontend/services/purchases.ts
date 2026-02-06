@@ -1,5 +1,6 @@
 import Purchases, { PurchasesOffering } from 'react-native-purchases';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 // Replace with your actual RevenueCat API keys
 const API_KEYS = {
@@ -10,6 +11,12 @@ const API_KEYS = {
 class PurchasesService {
     async init(userID: string) {
         if (Platform.OS === 'web') return; // Not supported on web
+
+        // Skip RevenueCat in Expo Go (StoreClient)
+        if (Constants.executionEnvironment === 'storeClient') {
+            console.log('Skipping RevenueCat initialization in Expo Go');
+            return;
+        }
 
         Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
 

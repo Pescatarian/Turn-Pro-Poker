@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { purchasesService } from '../services/purchases';
 import { useAuth } from './AuthContext';
 import { CustomerInfo } from 'react-native-purchases';
@@ -31,17 +32,28 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             return;
         }
 
+        // Skip RevenueCat in Expo Go (StoreClient)
+        if (Constants.executionEnvironment === 'storeClient') {
+            return;
+        }
+
         if (user) {
             // Initialize purchases when user logs in
             const initPurchases = async () => {
-                // Use database ID or a stable ID for RevenueCat
-                await purchasesService.init(user.id.toString());
+                try {
+                    // Use database ID or a stable ID for RevenueCat
+                    await purchasesService.init(user.id.toString());
 
-                const isSubscribed = await purchasesService.checkSubscriptionStatus();
-                setIsPro(isSubscribed);
+                    const isSubscribed = await purchasesService.checkSubscriptionStatus();
+                    setIsPro(isSubscribed);
 
-                const currentOfferings = await purchasesService.getOfferings();
-                setOfferings(currentOfferings);
+                    const currentOfferings = await purchasesService.getOfferings();
+                    setOfferings(currentOfferings);
+                } catch (error) {
+                    console.log('RevenueCat init failed (expected in Expo Go):', error);
+                    // Fail gracefully
+                    setIsPro(false);
+                }
             };
 
             initPurchases();

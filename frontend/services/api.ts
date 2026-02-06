@@ -21,10 +21,12 @@ const storage = {
 
 // Use your computer's IP for Android Emulator or localhost for iOS Simulator
 // Replace with your actual backend URL when deploying
-const BASE_URL = 'http://localhost:8000/api/v1'
+// const BASE_URL = 'http://localhost:8000/api/v1'
+const BASE_URL = 'http://192.168.1.152:8000/api/v1'
 
 export const api = axios.create({
     baseURL: BASE_URL,
+    timeout: 5000, // 5 seconds timeout
     headers: {
         'Content-Type': 'application/json',
     },

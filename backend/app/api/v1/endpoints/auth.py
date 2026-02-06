@@ -48,7 +48,7 @@ async def register(
     # Create new user with hashed password
     user = User(
         email=user_data.email,
-        password_hash=get_password_hash(user_data.password),
+        hashed_password=get_password_hash(user_data.password),
         display_name=user_data.display_name,
     )
     db.add(user)
@@ -71,7 +71,7 @@ async def login(
     result = await db.execute(select(User).where(User.email == form_data.username))
     user = result.scalar_one_or_none()
     
-    if not user or not verify_password(form_data.password, user.password_hash):
+    if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",

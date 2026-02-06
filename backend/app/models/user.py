@@ -36,6 +36,7 @@ class User(Base):
         DateTime(timezone=True), nullable=True
     )
     stripe_customer_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    revenuecat_app_user_id: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow

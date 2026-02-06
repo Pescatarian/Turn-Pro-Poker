@@ -3,8 +3,9 @@
 WHY: Centralized dependency injection for consistent auth across all endpoints.
 Handles token validation, user lookup, and subscription tier checking.
 """
+from datetime import datetime, timedelta, timezone
 from typing import Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Query
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -35,7 +36,7 @@ async def get_current_user(
     if payload.get("type") != "access":
         raise credentials_exception
     
-    user_id: int = payload.get("sub")
+    user_id: int = int(payload.get("sub"))
     if user_id is None:
         raise credentials_exception
     
@@ -102,3 +103,37 @@ async def get_pro_user(
         )
     
     return current_user
+
+
+async def validate_last_pulled_at(
+    last_pulled_at: Optional[int] = Query(
+        None, 
+        ge=0, 
+        description="Timestamp of last sync in milliseconds (WatermelonDB format)"
+    )
+) -> Optional[datetime]:
+    """
+    Validate and convert last_pulled_at timestamp from WatermelonDB.
+    Returns datetime object or None.
+    """
+    if last_pulled_at is None or last_pulled_at == 0:
+        return None
+        
+    try:
+        # WatermelonDB sends timestamps in milliseconds
+        # Treat as UTC
+        dt = datetime.fromtimestamp(last_pulled_at / 1000.0, tz=timezone.utc)
+        
+        # Sanity check: timestamp shouldn't be significantly in the future
+        # allowing 5 minutes for clock skew
+        if dt > datetime.now(timezone.utc) + timedelta(minutes=5):
+             raise HTTPException(
+                 status_code=status.HTTP_400_BAD_REQUEST, 
+                 detail="Invalid timestamp: future date detected"
+             )
+        return dt
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Invalid timestamp format"
+        )

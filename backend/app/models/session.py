@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import uuid
 from decimal import Decimal
 from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, DateTime, ForeignKey, Numeric, Integer, Text
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 class Session(Base):
     __tablename__ = "sessions"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     
     game_type: Mapped[str] = mapped_column(String(50), default="cash")

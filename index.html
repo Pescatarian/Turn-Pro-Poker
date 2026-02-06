@@ -1,0 +1,2648 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Poker Tracker</title>
+  <style>
+    .hidden {
+      display: none !important;
+    }
+    :root{
+      --bg:#1a1a1a;
+      --muted:#9aa3a8;
+      --card:#111214;
+      --accent:#10b981;
+      --danger:#ef4444;
+      --glass: rgba(255,255,255,0.03);
+      --radius:10px;
+      --max-width:1100px;
+      --shadow: 0 4px 12px rgba(0,0,0,0.6);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+      background:linear-gradient(180deg,var(--bg), #151515 120%);
+      color:#e6eef1;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      font-size:14px;
+    }
+    .app{
+      min-height:100vh;
+      max-width:1200px;
+      margin:0 auto;
+      padding:16px 12px;
+    }
+    .main{
+      max-width:var(--max-width);
+      margin:0 auto;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      padding-bottom:80px;
+    }
+    
+    /* Top Navigation Bar */
+    .top-nav{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:10px 12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.45);backdrop-filter: blur(6px);
+      margin-bottom:8px;
+    }
+    .user-avatar{
+      width:32px;height:32px;
+      border-radius:50%;
+      background:linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05));
+      border:2px solid rgba(16,185,129,0.3);
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;
+      transition:all 0.2s;
+      flex-shrink:0;
+    }
+    .user-avatar:hover{
+      border-color:var(--accent);
+      background:linear-gradient(135deg, rgba(16,185,129,0.3), rgba(16,185,129,0.1));
+    }
+    .user-avatar svg{width:18px;height:18px;stroke:var(--accent);stroke-width:2}
+    
+    .top-search{
+      flex:1;
+      display:flex;align-items:center;gap:8px;
+      background:rgba(255,255,255,0.03);
+      border:1px solid rgba(255,255,255,0.06);
+      padding:8px 12px;border-radius:8px;
+      transition:all 0.2s;
+    }
+    .top-search:focus-within{
+      border-color:var(--accent);
+      background:rgba(255,255,255,0.05);
+    }
+    .top-search svg{opacity:0.5;flex-shrink:0}
+    .top-search input{
+      background:transparent;border:0;color:inherit;outline:none;width:100%;font-size:13px;
+    }
+    .top-search input::placeholder{color:var(--muted);opacity:0.6}
+    
+    .get-coach-btn{
+      background:linear-gradient(180deg,var(--accent), #08a76a);
+      color:#052018;padding:8px 12px;border-radius:8px;border:0;font-weight:700;cursor:pointer;
+      box-shadow: 0 4px 12px rgba(16,185,129,0.12);font-size:12px;
+      white-space:nowrap;
+      flex-shrink:0;
+    }
+    
+    /* Header with Bankroll */
+    .header{
+      display:flex;align-items:center;justify-content:space-between;gap:8px;
+      padding:10px 12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.45);backdrop-filter: blur(6px);
+    }
+    .header-bankroll{
+      flex:1;
+      background:linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05));
+      border-radius:8px;padding:8px 12px;border:1px solid rgba(16,185,129,0.2);
+      cursor:pointer;
+      transition:all 0.2s;
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    .header-bankroll:hover{
+      background:linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.08));
+    }
+    .header-bankroll-info{flex:1}
+    .header-bankroll-label{font-size:10px;color:var(--muted);font-weight:600;margin-bottom:2px}
+    .header-bankroll-value-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .header-bankroll-value{font-size:18px;font-weight:800;color:var(--accent)}
+    .header-bankroll-change{
+      font-size:11px;font-weight:700;display:flex;align-items:center;gap:3px;
+    }
+    .header-bankroll-change.up{color:var(--accent)}
+    .header-bankroll-change.down{color:var(--danger)}
+    .header-bankroll-trend{
+      font-size:11px;font-weight:700;
+    }
+    .header-bankroll-trend.up{color:var(--accent)}
+    .header-bankroll-trend.down{color:var(--danger)}
+    .header-chevron{opacity:0.5}
+    .actions{display:flex;align-items:center;gap:8px}
+    .btn{
+      background:linear-gradient(180deg,var(--accent), #08a76a);
+      color:#052018;padding:8px 12px;border-radius:8px;border:0;font-weight:700;cursor:pointer;
+      box-shadow: 0 4px 12px rgba(16,185,129,0.12);font-size:13px;
+    }
+    .btn.ghost{
+      background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);font-weight:600;
+    }
+    .btn.danger{
+      background:linear-gradient(180deg,var(--danger), #dc2626);
+      color:#fff;
+    }
+    .icon-btn{
+      background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);
+      padding:6px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    }
+    .icon-btn:hover{background:rgba(255,255,255,0.02)}
+    
+    /* Chart Container */
+    .chart-container{
+      background:linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.01));
+      border-radius:10px;padding:16px;border:1px solid rgba(255,255,255,0.02);
+      box-shadow:0 6px 16px rgba(0,0,0,0.6);
+      margin-bottom:12px;
+    }
+    .chart-canvas-wrapper{
+      position:relative;
+      height:220px;
+      background:rgba(0,0,0,0.2);
+      border-radius:8px;
+      padding:20px 10px 30px 40px;
+    }
+    .chart-legend{
+      display:flex;gap:16px;margin-top:12px;font-size:11px;justify-content:center;
+    }
+    .legend-item{
+      display:flex;align-items:center;gap:6px;
+    }
+    .legend-color{
+      width:16px;height:2px;border-radius:1px;
+    }
+    .legend-color.gold{background:#10b981}
+    .legend-color.green{background:#d4af37}
+    
+
+    /* Chart Toggle Button */
+    .chart-toggle{
+      width:24px;height:24px;
+      border-radius:6px;
+      border:1.5px solid rgba(16,185,129,0.3);
+      background:rgba(16,185,129,0.05);
+      color:var(--accent);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:13px;
+      transition:all 0.2s;
+      flex-shrink:0;
+    }
+    .chart-toggle:hover{
+      background:rgba(16,185,129,0.15);
+      border-color:var(--accent);
+      transform:scale(1.08);
+    }
+    .chart-toggle:active{
+      transform:scale(0.95);
+    }
+
+    /* Stats Grid */
+    .stats-grid{
+      display:grid;
+      grid-template-columns: repeat(2,1fr);
+      gap:10px;
+      margin-top:8px;
+    }
+    .stat-card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.01));
+      border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,0.02);
+      box-shadow:0 6px 16px rgba(0,0,0,0.6);
+      cursor:pointer;
+      transition:all 0.2s;
+    }
+    .stat-card:hover{
+      background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      transform:translateY(-2px);
+    }
+    .stat-card:active{
+      transform:translateY(0);
+    }
+    .stat-label{font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:400}
+    .stat-value{font-size:22px;font-weight:600;margin-bottom:2px;color:#fff}
+    .stat-value.positive{color:var(--accent)}
+    .stat-value.negative{color:var(--danger)}
+    .stat-secondary{font-size:14px;color:var(--muted);margin-top:4px;font-weight:400}
+    .stat-secondary.positive { color: #10b981 }
+    .stat-secondary.negative{color:var(--danger)}
+    .stat-change{font-size:10px;color:var(--muted)}
+    .stat-change.up{color:var(--accent)}
+    .stat-change.down{color:var(--danger)}
+    
+    /* Payments Page */
+    .bankroll-summary{
+      background:linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05));
+      border-radius:12px;padding:16px;border:1px solid rgba(16,185,129,0.2);
+      box-shadow:0 6px 16px rgba(0,0,0,0.6);
+      margin-bottom:12px;
+    }
+    .bankroll-actions{
+      display:flex;gap:8px;margin-top:10px;
+    }
+    .bankroll-actions .btn{flex:1}
+    .bankroll-label{font-size:12px;color:var(--muted);font-weight:600}
+    .bankroll-value{font-size:28px;font-weight:800;color:var(--accent);margin-bottom:2px}
+    
+    .transactions-header{
+      font-size:14px;font-weight:700;margin:16px 0 10px 0;
+      color:var(--muted);
+    }
+    .transaction-item{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,0.02);
+      box-shadow:0 3px 10px rgba(0,0,0,0.5);
+      margin-bottom:10px;
+      display:flex;align-items:center;justify-content:space-between;
+      transition:all 0.2s;
+      position:relative;
+    }
+    .transaction-item:hover{
+      background:rgba(255,255,255,0.03);
+    }
+    .transaction-info{flex:1}
+    .transaction-type{font-weight:700;font-size:13px;margin-bottom:3px}
+    .transaction-date{font-size:11px;color:var(--muted)}
+    .transaction-note{font-size:12px;color:var(--muted);margin-top:3px}
+    .transaction-amount{
+      font-size:16px;font-weight:800;text-align:right;margin-right:8px;
+    }
+    .transaction-amount.positive{color:var(--accent)}
+    .transaction-amount.negative{color:var(--danger)}
+    .transaction-edit-btn{
+      background:transparent;border:1px solid rgba(255,255,255,0.06);
+      color:var(--muted);padding:5px 8px;border-radius:6px;cursor:pointer;
+      font-size:11px;font-weight:600;
+    }
+    .transaction-edit-btn:hover{background:rgba(255,255,255,0.02)}
+    
+    /* Sessions Content */
+    .search{
+      display:flex;align-items:center;gap:8px;background:var(--card);padding:8px 10px;border-radius:8px;
+      border:1px solid rgba(255,255,255,0.02);margin-bottom:12px;
+    }
+    .search input{background:transparent;border:0;color:inherit;outline:none;width:100%;font-size:13px}
+    .content{
+      display:grid;
+      grid-template-columns: repeat(2,1fr);
+      gap:12px;
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+      border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,0.02);
+      box-shadow:0 6px 16px rgba(0,0,0,0.6);
+      display:flex;flex-direction:column;gap:6px;
+    }
+    .card-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .session-title{font-weight:700;font-size:14px}
+    .meta{font-size:11px;color:var(--muted)}
+    .values{display:flex;gap:8px;align-items:center}
+    .value{
+      padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);min-width:70px;text-align:center;
+      font-weight:700;font-size:12px;
+    }
+    .profit{color:var(--accent)}
+    .profit.hidden-data{color:var(--muted)}
+    .loss{color:var(--danger)}
+    .loss.hidden-data{color:var(--muted)}
+    .hidden-data{color:var(--muted) !important}
+    .card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px}
+    .note{font-size:11px;color:var(--muted)}
+    
+    @media(max-width:760px){
+      .content{grid-template-columns:1fr}
+      .header{padding:10px;flex-wrap:wrap}
+    }
+    .muted{color:var(--muted)}
+    .small{font-size:11px}
+    .pill{padding:4px 6px;border-radius:999px;background:rgba(255,255,255,0.02);font-weight:700;font-size:10px}
+    
+    /* Modals */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px)}
+    .modal-backdrop:not(.hidden){display:flex}
+    .modal{width:calc(100% - 32px);max-width:380px;background:linear-gradient(180deg,#0c0c0c,#070707);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);margin:auto}
+    .modal h3{margin:0 0 6px 0;font-size:18px}
+    .modal-actions{display:flex;flex-direction:row;gap:10px;margin-top:16px}
+    .modal-actions .btn{flex:1;padding:12px;font-size:14px}
+    .form-row{display:flex;gap:8px}
+    .form-row .field{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+    .field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+    .field label{font-size:12px;color:var(--muted);font-weight:600}
+    .field input,.field textarea,.field select{width:100%;box-sizing:border-box;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);padding:10px;border-radius:8px;color:inherit;outline:none;font-size:14px}
+    .field input:focus,.field textarea:focus{border-color:var(--accent);background:rgba(255,255,255,0.05)}
+    
+    /* Bottom Tabs */
+    .bottom-tabs{
+      position:fixed;bottom:0;left:0;right:0;height:60px;
+      background:linear-gradient(180deg,#0d0d0d,#080808);
+      border-top:1px solid rgba(255,255,255,0.02);
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+      align-items:center;
+      z-index:50;
+      padding:0;
+    }
+    .tab-item{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:3px;
+      color:var(--muted);text-decoration:none;font-size:10px;font-weight:600;
+      padding:8px 4px;
+      transition:all 0.2s;
+      height:100%;
+    }
+    .tab-item svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;fill:none;flex-shrink:0}
+    .tab-item.active{color:var(--accent)}
+    .tab-item.active svg{stroke:var(--accent)}
+    
+    /* Add Button */
+    .add-btn-wrapper{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:3px;
+      height:100%;
+      padding:8px 4px;
+    }
+    .add-btn{
+      width:24px;height:24px;
+      background:transparent;
+      border:2px solid var(--accent);
+      border-radius:6px;
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;
+      transition:all 0.2s;
+      padding:0;
+      flex-shrink:0;
+    }
+    .add-btn:hover{
+      background:rgba(16,185,129,0.1);
+    }
+    .add-btn svg{
+      width:14px;height:14px;stroke:var(--accent);stroke-width:3;
+    }
+    
+    .page {
+      position: absolute;
+      top: 60px;
+      left: 0;
+      display: block;
+      width: 100%;
+      min-height: calc(100vh - 120px);
+      padding: 16px;
+      padding-bottom: 80px;
+      z-index: 1;
+    }
+    
+    .page.hidden{display:none}
+    
+    .empty-state{
+      padding:40px 16px;text-align:center;color:var(--muted);
+    }
+    .empty-state svg{
+      opacity:0.3;margin:0 auto 16px;
+    }
+    .empty-state h3{
+      font-size:16px;font-weight:700;margin-bottom:6px;color:#e6eef1;
+    }
+    
+    /* Chart Axis Labels */
+    .chart-y-axis{
+      position:absolute;
+      left:0;
+      top:20px;
+      bottom:30px;
+      width:35px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      font-size:9px;
+      color:var(--muted);
+    }
+    .chart-x-axis{
+      position:absolute;
+      left:40px;
+      right:10px;
+      bottom:5px;
+      height:20px;
+      display:flex;
+      justify-content:space-between;
+      font-size:9px;
+      color:var(--muted);
+    }
+    
+    /* Simple Line Chart */
+    .simple-chart{
+      position:relative;
+      width:100%;
+      height:100%;
+    }
+    .simple-chart svg{
+      width:100%;
+      height:100%;
+    }
+
+    /* More Page */
+    .more-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .more-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 14px;
+      background: rgba(255,255,255,0.01);
+      text-decoration: none;
+      color: #e6eef1;
+      transition: background 0.2s;
+    }
+
+    .more-item:hover {
+      background: rgba(255,255,255,0.04);
+    }
+
+    .more-item:active {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .more-content {
+      flex: 1;
+    }
+
+    .more-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 2px;
+      color: var(--muted);
+    }
+
+    .more-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .hidden-data {
+      color: var(--muted) !important;
+    }
+
+    #statTotalProfit.positive { color: #d4af37 !important; }
+    #statNetProfit.positive { color: #10b981 !important; }
+    #statTotalProfit.negative { color: var(--danger) !important; }
+    #statNetProfit.negative { color: var(--danger) !important; }
+    #statBB100.positive { color: #d4af37 !important; }
+    #statDollarHour.positive { color: #d4af37 !important; }
+    #statBB100.negative { color: var(--danger) !important; }
+    #statDollarHour.negative { color: var(--danger) !important; }
+    #statTotalProfit.hidden-data,
+    #statNetProfit.hidden-data,
+    #statBB100.hidden-data,
+    #statDollarHour.hidden-data,
+    .stat-value.hidden-data,
+    .stat-secondary.hidden-data,
+    .transaction-amount.hidden-data {
+      color: var(--muted) !important;
+    }
+    
+/* Replayer Styles */
+.replayer-container{background:var(--bg);width:100%;height:100vh;display:flex;flex-direction:column}
+#replayerModal{position:fixed;inset:0;background:var(--bg);z-index:100}
+#replayerModal.hidden{display:none}
+.replayer-back,.replayer-menu{background:none;border:none;color:#fff;font-size:20px;padding:8px;cursor:pointer}
+.replayer-stakes{color:#fff;font-weight:600;font-size:16px}
+.poker-table-container{padding:16px 12px;display:flex;justify-content:center;align-items:center;flex:1}
+.poker-table{position:relative;width:100%;max-width:400px;aspect-ratio:1/1.4}
+.table-felt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70%;height:80%;background:linear-gradient(145deg,#1a472a,#0d2818);border-radius:50%;border:2px solid rgba(255,255,255,0.15);box-shadow:0 0 0 8px #1a1a1a,inset 0 0 30px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+
+.stakes-display{color:#fff;font-weight:600;font-size:11px;position:absolute;top:12px}
+.pot-display{display:flex;align-items:center;gap:4px;color:#fff;font-weight:600;font-size:11px;margin-top:4px}
+.pot-chips{color:var(--danger);font-size:8px;letter-spacing:-2px}
+.community-cards{display:flex;gap:4px;height:44px}
+.card-slot{width:32px;height:44px;border-radius:4px;border:1px dashed rgba(255,255,255,0.3);background:rgba(0,0,0,0.2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.card-slot.revealed{border:2px solid rgba(255,255,255,0.3)}
+.card-slot .card-rank{font-size:20px;font-weight:bold;line-height:1}
+.card-slot .card-suit{font-size:12px;line-height:1}
+.seat{position:absolute;display:flex;flex-direction:column;align-items:center;gap:4px;overflow:visible;cursor:pointer}
+.seat-cards{display:flex;gap:4px;height:38px}
+.back-card{width:32px;height:44px;background:linear-gradient(135deg,#c41e3a,#8b0000);border-radius:4px;border:1px solid rgba(255,255,255,0.3)}
+.back-card.revealed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 2px solid rgba(255,255,255,0.3);
+}
+
+.back-card .card-rank {
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.back-card .card-suit {
+  font-size: 12px;
+  line-height: 1;
+}
+.seat-info{background:#fff;border-radius:8px;padding:6px 10px;text-align:center;min-width:55px}
+.pos-label{display:block;font-size:11px;font-weight:600;color:#333}
+.hero-label{background:var(--accent);color:#000;padding:2px 6px;border-radius:4px;font-size:9px}
+.stack{display:block;font-size:12px;color:#000;font-weight:700}
+.seat.active .seat-info{box-shadow:0 0 0 3px var(--accent)}
+.seat.folded{opacity:0.4}
+.seat.hero .seat-info{box-shadow:0 0 0 2px var(--accent)}
+.seat.hero .pos-label{background:var(--accent);color:#000;padding:2px 6px;border-radius:4px;font-size:9px}
+
+/* Seat positions - clockwise from 6 o'clock */
+.seat-1{bottom:0%;left:50%;transform:translateX(-50%)}
+.seat-2{bottom:18%;left:5%}
+.seat-3{top:50%;left:0%;transform:translateY(-50%)}
+.seat-4{top:20%;left:3%}
+.seat-5{top:0%;left:25%;transform:translateX(-50%)}
+.seat-6{top:0%;right:25%;transform:translateX(50%)}
+.seat-7{top:20%;right:3%}
+.seat-8{top:50%;right:0%;transform:translateY(-50%)}
+.seat-9{bottom:18%;right:5%}
+
+.replayer-tabs{display:flex;gap:8px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.tab-btn{background:none;border:none;color:var(--muted);padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:2px solid transparent}
+.tab-btn.active{color:#fff;border-bottom-color:var(--accent)}
+.show-cards-btn{margin-left:auto;font-size:13px}
+.action-history{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;scrollbar-width:none}
+.action-history::-webkit-scrollbar{display:none}
+.action-pill{display:flex;flex-direction:column;align-items:center;min-width:70px;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.1);font-size:12px;flex-shrink:0}
+.action-pill.empty{color:var(--muted);min-width:100%;justify-content:center;padding:16px}
+.action-pill .action-text{font-weight:600;color:#fff}
+.action-pill .action-player{color:var(--muted);font-size:11px;margin-top:2px}
+.action-pill.fold{background:rgba(108,117,125,0.3)}
+.action-pill.fold .action-text{color:#adb5bd}
+.action-pill.check,.action-pill.call{background:rgba(16,185,129,0.2)}
+.action-pill.check .action-text,.action-pill.call .action-text{color:#10b981}
+.action-pill.bet{background:rgba(212,175,55,0.2)}
+.action-pill.bet .action-text{color:var(--accent)}
+.action-pill.raise{background:rgba(239,68,68,0.2)}
+.action-pill.raise .action-text{color:var(--danger)}
+.notes-panel{padding:12px 16px}
+.notes-panel textarea{width:100%;height:80px;background:var(--bg);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;color:#fff;font-size:14px;resize:none}
+.action-buttons{display:flex;gap:8px;padding:12px 16px;flex-wrap:wrap}
+.action-btn{flex:1;min-width:60px;padding:10px 8px;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer}
+.action-btn.fold{background:#6c757d;color:#fff}
+.action-btn.check{background:#10b981;color:#fff}
+.action-btn.call{background:#10b981;color:#fff}
+.action-btn.bet{background:var(--accent);color:#000}
+.action-btn.raise{background:var(--danger);color:#fff}
+.playback-controls{display:flex;gap:8px;padding:8px 16px 24px 16px}
+.playback-btn{flex:1;padding:12px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:#fff;font-size:14px;cursor:pointer}
+.playback-btn.nav{font-size:18px}
+
+.seat .dealer-btn {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #000;
+  font-weight: bold;
+  z-index: 10;
+}
+
+/* Seat Action Modal */
+.seat-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;pointer-events:auto}
+.seat-modal-backdrop.hidden{display:none}
+.seat-modal{background:#2a2a2a;width:100%;max-width:500px;border-radius:16px 16px 0 0;padding:8px 12px 12px;pointer-events:auto}
+.seat-modal-header{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px;margin-bottom:6px}
+.seat-modal-actions{display:flex;gap:4px}
+.seat-modal-btn{padding:6px 10px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:#fff;font-size:10px;font-weight:600;cursor:pointer}
+.seat-modal-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.seat-modal-row label{color:#fff;font-size:11px;min-width:35px}
+.seat-modal-row input{width:100px;padding:6px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:#fff;font-size:12px}
+.seat-modal-cards{display:flex;gap:3px;justify-content:center;flex-wrap:wrap;margin-bottom:6px}
+.seat-modal-card{width:24px;height:30px;background:#fff;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer;border:2px solid transparent;color:#000}
+.seat-modal-suits{display:flex;gap:4px;justify-content:center;margin-bottom:6px}
+.seat-modal-suit{width:28px;height:28px;background:rgba(255,255,255,0.1);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;border:2px solid transparent}
+.seat-modal-done{width:100%;padding:8px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;margin-top:4px}
+.seat-modal-suit[data-suit="h"]{color:#ef4444}
+.seat-modal-suit[data-suit="s"]{color:#000}
+.seat-modal-suit[data-suit="d"]{color:#3b82f6}
+.seat-modal-suit[data-suit="c"]{color:#22c55e}
+
+@media (max-width: 500px) {
+  .seat-modal { padding: 10px 14px 14px; max-height: 40vh }
+  .seat-modal-header { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 18px; font-weight: 600; margin-bottom: 10px }
+  .seat-modal-actions { display: flex; gap: 10px; flex: 3; justify-content: space-between }
+  .seat-modal-btn { flex: 1; height: 38px; font-size: 14px; padding: 0 }
+  .seat-modal-row { margin-bottom: 10px }
+  .seat-modal-row label { color: var(--muted); font-size: 18px; font-weight: 600; min-width: 50px }
+  .seat-modal-row input { width: 80px; height: 38px; padding: 8px; font-size: 16px; box-sizing: border-box }
+  .seat-modal-cards { gap: 5px; margin-top: 0; margin-bottom: 10px }
+  .seat-modal-card { width: 36px; height: 44px; font-size: 16px; border-radius: 5px }
+  .seat-modal-suits { gap: 6px; margin-top: 0; margin-bottom: 0 }
+  .seat-modal-suit { width: 44px; height: 44px; font-size: 24px; border-radius: 6px }
+  .seat-modal-done { display: none }
+}
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <main class="main">
+      <!-- Top Navigation Bar -->
+      <div class="top-nav">
+        <div class="user-avatar" id="userAvatarBtn">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        
+        <div class="top-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <input type="text" id="globalSearch" placeholder="Search by BB, date, location..." />
+        </div>
+        
+        <button class="get-coach-btn" id="getCoachBtn">Get Coach</button>
+      </div>
+      
+      <!-- Header with Bankroll -->
+      <div class="header">
+        <div class="header-bankroll" id="headerBankrollCard">
+          <div class="header-bankroll-info">
+            <div class="header-bankroll-label">Bankroll</div>
+            <div class="header-bankroll-value-row">
+              <div class="header-bankroll-value" data-value="$5,000.00">$5,000.00</div>
+              <div class="header-bankroll-change up" id="bankrollChange">↗ +$0</div>
+              <div class="header-bankroll-trend up" id="bankrollTrend">+0%</div>
+            </div>
+          </div>
+          <svg class="header-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="actions">
+          <button class="icon-btn" id="eyeBtn" title="Toggle visibility">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Home Page -->
+      <div id="homePage">
+        <!-- Chart -->
+        <div class="chart-container">
+          <div class="chart-canvas-wrapper">
+            <div class="chart-y-axis" id="chartYAxis"></div>
+            <div class="simple-chart" id="profitChart"></div>
+            <div class="chart-x-axis" id="chartXAxis"></div>
+          </div>
+          <div class="chart-legend">
+            <button class="chart-toggle" id="chartToggle" title="Toggle X-axis">S</button>
+            <div class="legend-item">
+              <div class="legend-color green"></div>
+              <span>Won</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color gold"></div>
+              <span>Net Profit (after tips & expenses)</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+          <!-- Row 1: Total Profit | Winrate -->
+          <div class="stat-card" onclick="openStatDetail('Total Profit')">
+            <div class="stat-label">Total Profit</div>
+            <div class="stat-value" id="statTotalProfit">$0</div>
+            <div class="stat-secondary" id="statNetProfit">Net: $0</div>
+          </div>
+          
+          <div class="stat-card" onclick="openStatDetail('Winrate')">
+            <div class="stat-label">Winrate</div>
+            <div class="stat-value" id="statBB100">0 bb/100</div>
+            <div class="stat-secondary" id="statNetBB100">Net: 0 bb/100</div>
+          </div>
+          
+          <!-- Row 2: Hours Played | $/Hour -->
+          <div class="stat-card" onclick="openStatDetail('Hours Played')">
+            <div class="stat-label">Hours Played</div>
+            <div class="stat-value" id="statHours">0</div>
+          </div>
+          
+          <div class="stat-card" onclick="openStatDetail('$/Hour')">
+            <div class="stat-label">$/Hour</div>
+            <div class="stat-value" id="statDollarHour">$0</div>
+            <div class="stat-secondary" id="statNetDollarHour">Net: $0</div>
+          </div>
+          
+          <!-- Row 3: Sessions Played | Avg Session Length -->
+          <div class="stat-card" onclick="openStatDetail('Sessions Played')">
+            <div class="stat-label">Sessions Played</div>
+            <div class="stat-value" id="statSessionsPlayed">0</div>
+          </div>
+          
+          <div class="stat-card" onclick="openStatDetail('Avg Session Length')">
+            <div class="stat-label">Avg Session Length</div>
+            <div class="stat-value" id="statAvgSession">0h</div>
+          </div>
+          
+          <!-- Row 4: Tips | Other Expenses -->
+          <div class="stat-card" onclick="openStatDetail('Tips')">
+            <div class="stat-label">Tips</div>
+            <div class="stat-value negative" id="statTips">$0</div>
+            <div class="stat-secondary negative" id="statTipsBB100">-0.0 bb/100</div>
+          </div>
+          
+          <div class="stat-card" onclick="openStatDetail('Other Expenses')">
+            <div class="stat-label">Other Expenses</div>
+            <div class="stat-value negative" id="statExpenses">$0</div>
+            <div class="stat-secondary negative" id="statExpensesBB100">-0.0 bb/100</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Sessions Page -->
+      <div id="sessionsPage" class="hidden">
+        <div class="search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="opacity:0.75">
+            <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <input id="search" placeholder="Search by location, note..." />
+        </div>
+        <section class="content" id="cards"></section>
+      </div>
+      
+      <!-- Payments Page -->
+      <div id="paymentsPage" class="hidden">
+        <div class="bankroll-summary">
+          <div class="bankroll-label">Current Bankroll</div>
+          <div class="bankroll-value" id="paymentsBankroll" data-value="$5,000.00">$5,000.00</div>
+          <div class="bankroll-actions">
+            <button class="btn" id="depositBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="display:inline;vertical-align:middle;margin-right:4px">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              Deposit
+            </button>
+            <button class="btn ghost" id="withdrawBtn" style="border-color:var(--danger);color:var(--danger)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="display:inline;vertical-align:middle;margin-right:4px">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              Withdraw
+            </button>
+          </div>
+        </div>
+        
+        <div class="transactions-header">Transactions</div>
+        <div id="transactionsList"></div>
+      </div>
+      
+      <!-- Add this inside your Hands page, replacing the "Coming Soon" placeholder -->
+
+      <div id="handsPage" class="page hidden">
+        <!-- Add Hand Button -->
+        <div style="padding:16px;">
+          <button onclick="openReplayer()" style="width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:8px;font-weight:600;font-size:15px;">+ Add Hand</button>
+        </div>
+        
+        <!-- Saved Hands List -->
+        <div id="handsList" style="padding:0 16px;">
+          <div style="text-align:center;color:var(--muted);padding:40px 20px;">
+            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:12px;opacity:0.5;"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM12 8v8M8 12h8"/></svg>
+            <p style="margin:0;font-weight:600;">No hands recorded</p>
+            <p style="margin:4px 0 0;font-size:13px;">Tap + Add Hand to record your first hand</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Replayer Modal -->
+      <div id="replayerModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeReplayer()">
+        <div class="replayer-container">
+          <!-- Header -->
+          <div class="replayer-header">
+            <button onclick="closeReplayer()" class="replayer-back">←</button>
+            <span class="replayer-stakes">$1/$2</span>
+            <button onclick="openReplayerMenu()" class="replayer-menu">⋮</button>
+          </div>
+          
+          <!-- Table -->
+          <div class="poker-table-container">
+            <div class="poker-table">
+              <div class="table-felt">
+                <div class="stakes-display">$5/$10</div>
+                <div class="community-cards" id="communityCards">
+                  <div class="card-slot empty" onclick="openBoardCardModal(this)"></div>
+                  <div class="card-slot empty" onclick="openBoardCardModal(this)"></div>
+                  <div class="card-slot empty" onclick="openBoardCardModal(this)"></div>
+                  <div class="card-slot empty" onclick="openBoardCardModal(this)"></div>
+                  <div class="card-slot empty" onclick="openBoardCardModal(this)"></div>
+                </div>
+                <div class="pot-display"><span class="pot-chips">●●●</span> <span id="potAmount">5</span></div>
+              </div>
+              
+              <!-- Seats -->
+            <div class="seat seat-1" data-pos="BTN"><div class="seat-cards"><div class="back-card"></div><div class="back-card"></div></div><div class="seat-info"><span class="pos-label">BTN</span><span class="stack">1,000</span></div></div>
+            <div class="seat seat-2" data-pos="SB"><div class="seat-cards"><div class="back-card"></div><div class="back-card"></div></div><div class="seat-info"><span class="pos-label">SB</span><span class="stack">1,000</span></div></div>
+            <div class="seat seat-3" data-pos="BB"><div class="seat-cards"><div class="back-card"></div><div class="back-card"></div></div><div class="seat-info"><span class="pos-label">BB</span><span class="stack">1,000</span></div></div>
+            <div class="seat seat-4" data-pos="UTG"><div class="seat-cards"><div class="back-card"></div><div class="back-card"></div></div><div class="seat-info"><span class="pos-label">UTG</span><span class="stack">1,000</span></div></div>
+            <div class="seat seat-5" data-pos="EP"><div class="seat-cards"><div class="back-card"></div><div class="back-card"></div></div><div class="seat-info"><span class="pos-label">EP</span><span class="stack">1,000</span></div></div>
+            <div class="seat seat-6" data-pos="MP"><div class="seat-cards"><div class="back-card"></div><div class="back-card"></div></div><div class="seat-info"><span class="pos-label">MP</span><span class="stack">1,000</span></div></div>
+            <div class="seat seat-7" data-pos="LJ"><div class="seat-cards"><div class="back-card"></div><div class="back-card"></div></div><div class="seat-info"><span class="pos-label">LJ</span><span class="stack">1,000</span></div></div>
+            <div class="seat seat-8" data-pos="HJ"><div class="seat-cards"><div class="back-card"></div><div class="back-card"></div></div><div class="seat-info"><span class="pos-label">HJ</span><span class="stack">1,000</span></div></div>
+            <div class="seat seat-9" data-pos="CO"><div class="seat-cards"><div class="back-card"></div><div class="back-card"></div></div><div class="seat-info"><span class="pos-label">CO</span><span class="stack">1,000</span></div></div>
+            </div>
+          </div>
+          
+          <!-- Tabs -->
+          <div class="replayer-tabs">
+            <button class="tab-btn active" onclick="switchReplayerTab('history')">History</button>
+            <button class="tab-btn" onclick="switchReplayerTab('notes')">Notes</button>
+            <button class="tab-btn show-cards-btn" onclick="toggleShowCards()">🂠 Show cards</button>
+          </div>
+          
+          <!-- Action History -->
+          <div class="action-history" id="actionHistory">
+            <div class="action-pill empty">No actions yet</div>
+          </div>
+          
+          <!-- Notes Panel (hidden by default) -->
+          <div class="notes-panel hidden" id="notesPanel">
+            <textarea placeholder="Add notes about this hand..." id="handNotes"></textarea>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="action-buttons">
+            <button class="action-btn fold" onclick="addAction('fold')">Fold</button>
+            <button class="action-btn check" onclick="addAction('check')">Check</button>
+            <button class="action-btn call" onclick="addAction('call')">Call</button>
+            <button class="action-btn bet" onclick="addAction('bet')">Bet</button>
+            <button class="action-btn raise" onclick="addAction('raise')">Raise</button>
+          </div>
+          
+          <!-- Playback Controls -->
+          <div class="playback-controls">
+            <button class="playback-btn" onclick="shareHand()">↑ Share</button>
+            <button class="playback-btn" onclick="playReplay()">▷ Play</button>
+          </div>
+          <div class="playback-controls">
+            <button class="playback-btn nav" onclick="prevAction()">←</button>
+            <button class="playback-btn nav" onclick="nextAction()">→</button>
+          </div>
+        </div>
+      </div>
+      
+      </main>
+  </div>
+  
+      <!-- More Page -->
+      <div id="morePage" class="page hidden">
+        <div class="more-menu">
+          <a href="#" class="more-item" data-action="payments">
+            <div class="more-content">
+              <div class="more-title">Payments</div>
+              <div class="more-subtitle">Manage bankroll transactions</div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="opacity:0.3">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          
+          <a href="#" class="more-item" data-action="playerProfiles">
+              <div class="more-content">
+              <div class="more-title">Player Profiles</div>
+              <div class="more-subtitle">Track opponents & friends</div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="opacity:0.3">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          
+          <a href="#" class="more-item" data-action="locations">
+            <div class="more-content">
+              <div class="more-title">Locations</div>
+              <div class="more-subtitle">Manage your poker venues</div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="opacity:0.3">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          
+          <a href="#" class="more-item" data-action="notepad">
+            <div class="more-content">
+              <div class="more-title">Notepad</div>
+              <div class="more-subtitle">Quick notes & observations</div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="opacity:0.3">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          
+          <a href="#" class="more-item" data-action="calendar">
+            <div class="more-content">
+              <div class="more-title">Calendar</div>
+              <div class="more-subtitle">View sessions by date</div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="opacity:0.3">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          
+          <a href="#" class="more-item" data-action="csvExport">
+            <div class="more-content">
+              <div class="more-title">CSV Export</div>
+              <div class="more-subtitle">Export data to spreadsheet</div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="opacity:0.3">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          
+          <a href="#" class="more-item" data-action="pdfExport">
+            <div class="more-content">
+              <div class="more-title">PDF Export</div>
+              <div class="more-subtitle">Generate PDF reports</div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="opacity:0.3">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Bankroll Modal -->
+      <div class="modal-backdrop hidden" id="bankrollModal">
+        <div class="modal">
+            <h3>Manage Bankroll</h3>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+              Current Balance: <strong style="color:var(--accent);font-size:16px" id="modalBankroll">$5,000.00</strong>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+              <button class="btn" id="modalDepositBtn" style="padding:12px;font-size:14px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="display:inline;vertical-align:middle;margin-right:4px">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Deposit
+              </button>
+              <button class="btn ghost" id="modalWithdrawBtn" style="padding:12px;font-size:14px;border-color:var(--danger);color:var(--danger)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="display:inline;vertical-align:middle;margin-right:4px">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Withdraw
+              </button>
+              <button class="btn ghost" id="viewTransactionsBtn" style="grid-column:span 2;padding:12px;font-size:14px">View All Transactions →</button>
+              <button class="btn ghost" id="closeBankrollModal" style="grid-column:span 2;padding:12px;font-size:14px">Cancel</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Transaction Modal (Deposit/Withdraw) -->
+        <div class="modal-backdrop hidden" id="transactionModal">
+          <div class="modal">
+            <h3 id="transactionModalTitle">Deposit</h3>
+            <div class="field">
+              <label>Amount</label>
+              <input type="number" id="transactionAmount" placeholder="e.g. 1000" />
+            </div>
+            <div class="field">
+              <label>Note / Tag</label>
+              <input type="text" id="transactionNote" placeholder="e.g. Initial deposit, Winnings, etc." />
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="btn ghost" id="cancelTransaction" style="flex:1">Cancel</button>
+              <button class="btn" id="saveTransaction" style="flex:1">Save</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Edit Transaction Modal -->
+        <div class="modal-backdrop hidden" id="editTransactionModal">
+          <div class="modal">
+            <h3>Edit Transaction</h3>
+            <div class="field">
+              <label>Amount</label>
+              <input type="number" id="editTransactionAmount" placeholder="e.g. 1000" />
+            </div>
+            <div class="field">
+              <label>Note / Tag</label>
+              <input type="text" id="editTransactionNote" placeholder="e.g. Initial deposit, Winnings, etc." />
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="btn danger" id="deleteTransaction" style="flex:1">Delete</button>
+              <button class="btn ghost" id="cancelEditTransaction" style="flex:1">Cancel</button>
+              <button class="btn" id="saveEditTransaction" style="flex:1">Save</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Add Session Modal -->
+        <div class="modal-backdrop hidden" id="sessionModal">
+          <div class="modal">
+            <h3>Add Session</h3>
+            <div class="small muted" style="margin-bottom:10px">Track your poker session</div>
+            <div class="form-row">
+              <div class="field">
+                <label>Date</label>
+                <input type="date" id="s_date" />
+              </div>
+              <div class="field">
+                <label>Location</label>
+                <input type="text" id="s_location" placeholder="Casino / Site" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label>Buy-in</label>
+                <input type="number" id="s_buyin" placeholder="e.g. 200" />
+              </div>
+              <div class="field">
+                <label>Cash-out</label>
+                <input type="number" id="s_cashout" placeholder="e.g. 450" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label>Hours</label>
+                <input type="number" step="0.5" id="s_hours" placeholder="e.g. 4.5" />
+              </div>
+              <div class="field">
+                <label>BB Size</label>
+                <input type="number" id="s_bb" placeholder="e.g. 5" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label>Tips ($)</label>
+                <input type="number" id="s_tips" placeholder="e.g. 20" />
+              </div>
+              <div class="field">
+                <label>Expenses ($)</label>
+                <input type="number" id="s_expenses" placeholder="e.g. 15" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Notes</label>
+              <textarea id="s_notes" rows="3" placeholder="Short notes about the session..."></textarea>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="btn ghost" id="cancelSession" style="flex:1">Cancel</button>
+              <button class="btn" id="saveSession" style="flex:1">Save Session</button>
+            </div>
+          </div>
+        </div>
+        
+      <!-- Seat Action Modal -->
+      <div id="seatModal" class="seat-modal-backdrop hidden" onclick="if(event.target===this)closeSeatModal()">
+        <div class="seat-modal">
+          <div class="seat-modal-header">
+            <span style="flex:1;">Seat <span id="seatModalPosition">--</span></span>
+            <div class="seat-modal-actions">
+              <button class="seat-modal-btn" onclick="sitHere()">Sit Here</button>
+              <button class="seat-modal-btn" onclick="openLinkPlayer()">Link Player</button>
+              <button class="seat-modal-btn">Tag</button>
+            </div>
+          </div>
+          <div class="seat-modal-row">
+            <label>Stack</label>
+            <input type="number" id="seatStackInput" value="1000" inputmode="numeric">
+          </div>
+          <div class="seat-modal-cards" id="seatCardRanks">
+            <div class="seat-modal-card" data-rank="A">A</div>
+            <div class="seat-modal-card" data-rank="K">K</div>
+            <div class="seat-modal-card" data-rank="Q">Q</div>
+            <div class="seat-modal-card" data-rank="J">J</div>
+            <div class="seat-modal-card" data-rank="T">T</div>
+            <div class="seat-modal-card" data-rank="9">9</div>
+            <div class="seat-modal-card" data-rank="8">8</div>
+            <div class="seat-modal-card" data-rank="7">7</div>
+            <div class="seat-modal-card" data-rank="6">6</div>
+            <div class="seat-modal-card" data-rank="5">5</div>
+            <div class="seat-modal-card" data-rank="4">4</div>
+            <div class="seat-modal-card" data-rank="3">3</div>
+            <div class="seat-modal-card" data-rank="2">2</div>
+          </div>
+          <div class="seat-modal-suits" id="seatCardSuits">
+            <div class="seat-modal-suit" data-suit="h">&#9829;</div>
+            <div class="seat-modal-suit" data-suit="s">&#9824;</div>
+            <div class="seat-modal-suit" data-suit="d">&#9830;</div>
+            <div class="seat-modal-suit" data-suit="c">&#9827;</div>
+          </div>
+          <button class="seat-modal-done" onclick="closeSeatModal()">Done</button>
+        </div>
+      </div>
+
+          <script>
+            // Your JavaScript here
+          </script>
+        </body>
+      </html>
+
+        <!-- Bottom Tabs -->
+        <nav class="bottom-tabs">
+          <a href="#" class="tab-item active" data-page="home">
+            <svg viewBox="0 0 24 24">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Home</span>
+          </a>
+          
+          <a href="#" class="tab-item" data-page="sessions">
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="3" width="7" height="7" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="14" y="3" width="7" height="7" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="14" y="14" width="7" height="7" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="3" y="14" width="7" height="7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Sessions</span>
+          </a>
+          
+          <!-- Add Button -->
+          <div class="add-btn-wrapper">
+            <button class="add-btn" id="addBtn">
+              <svg viewBox="0 0 24 24" fill="none">
+                <line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <span style="font-size:10px;font-weight:600;color:var(--accent)">Add</span>
+          </div>
+          
+          <a href="#" class="tab-item" data-page="handHistories">
+            <svg viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="14 2 14 8 20 8" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="9" y1="13" x2="15" y2="13" stroke-linecap="round"/>
+              <line x1="9" y1="17" x2="15" y2="17" stroke-linecap="round"/>
+            </svg>
+            <span>Hands</span>
+          </a>
+          
+          <a href="#" class="tab-item" data-page="more">
+            <svg viewBox="0 0 24 24">
+              <circle cx="5" cy="12" r="1.5" fill="currentColor"/>
+              <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+              <circle cx="19" cy="12" r="1.5" fill="currentColor"/>
+            </svg>
+            <span>More</span>
+          </a>
+          
+        </nav>
+  
+      <script>
+
+      function showToast(message) {
+        const toast = document.createElement('div');
+        toast.textContent = message;
+        toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 24px;border-radius:8px;z-index:9999;';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
+      }
+
+      let currentSeatEl = null;
+      let selectedRank = null;
+      let selectedSuit = null;
+      let seatHoleCards = [];
+
+      function initCardSelection() {
+        document.querySelectorAll('.seat-modal-card').forEach(card => {
+          card.addEventListener('click', () => selectRank(card));
+        });
+        document.querySelectorAll('.seat-modal-suit').forEach(suit => {
+          suit.addEventListener('click', () => selectSuit(suit));
+        });
+      }
+
+      function selectRank(card) {
+        document.querySelectorAll('.seat-modal-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedRank = card.dataset.rank;
+      }
+
+      function selectSuit(suit) {
+        console.log('selectSuit called, dataset.suit:', suit.dataset.suit);
+        document.querySelectorAll('.seat-modal-suit').forEach(s => s.classList.remove('selected'));
+        suit.classList.add('selected');
+        selectedSuit = suit.dataset.suit;
+        tryCompleteCard();
+      }
+
+      let usedCards = {};
+
+      function tryCompleteCard() {
+        if (selectedRank && selectedSuit) {
+          const card = selectedRank + selectedSuit;
+          
+          // Check if card is already used
+          if (usedCards[card]) {
+            alert('This card is already assigned to ' + usedCards[card]);
+            selectedRank = null;
+            selectedSuit = null;
+            document.querySelectorAll('.seat-modal-card').forEach(c => c.classList.remove('selected'));
+            document.querySelectorAll('.seat-modal-suit').forEach(s => s.classList.remove('selected'));
+            return;
+          }
+          
+          // Board card mode
+          if (currentBoardSlot) {
+            const suit = selectedSuit;
+            const suitSymbol = {h: '♥', d: '♦', c: '♣', s: '♠'}[suit];
+            const bgColor = {h: '#991b1b', d: '#1e40af', c: '#166534', s: '#000'}[suit];
+            
+            currentBoardSlot.innerHTML = `<span class="card-rank">${selectedRank}</span><span class="card-suit">${suitSymbol}</span>`;
+            currentBoardSlot.style.background = bgColor;
+            currentBoardSlot.style.color = '#fff';
+            currentBoardSlot.classList.remove('empty');
+            currentBoardSlot.classList.add('revealed');
+            currentBoardSlot.style.fontSize = '16px';
+            
+            usedCards[card] = 'Board';
+            
+            const slots = document.querySelectorAll('#communityCards .card-slot');
+            let nextSlot = null;
+            for (let slot of slots) {
+              if (slot.classList.contains('empty')) {
+                nextSlot = slot;
+                break;
+              }
+            }
+            if (nextSlot) {
+              currentBoardSlot = nextSlot;
+            } else {
+              closeBoardCardModal();
+              document.getElementById('seatModal').classList.add('hidden');
+            }
+          }
+          // Seat hole card mode
+          else if (currentSeatEl) {
+            const seatPos = currentSeatEl.dataset.pos;
+            
+            if (seatHoleCards.length < 2 && !seatHoleCards.includes(card)) {
+              seatHoleCards.push(card);
+              usedCards[card] = seatPos;
+              updateSeatHoleCardsDisplay();
+            }
+          }
+          
+          // Reset selection
+          selectedRank = null;
+          selectedSuit = null;
+          document.querySelectorAll('.seat-modal-card').forEach(c => c.classList.remove('selected'));
+          document.querySelectorAll('.seat-modal-suit').forEach(s => s.classList.remove('selected'));
+        }
+      }
+
+      function updateSeatHoleCardsDisplay() {
+        console.log('seatHoleCards:', seatHoleCards);
+        if (currentSeatEl) {
+          const backCards = currentSeatEl.querySelectorAll('.back-card');
+          seatHoleCards.forEach((card, i) => {
+            if (backCards[i]) {
+              const rank = card.slice(0, -1);
+              const suit = card.slice(-1);
+              const suitSymbol = {h: '♥', d: '♦', c: '♣', s: '♠'}[suit];
+              const bgColor = {h: '#991b1b', d: '#1e40af', c: '#166534', s: '#000'}[suit];
+              
+              backCards[i].innerHTML = `<span class="card-rank">${rank}</span><span class="card-suit">${suitSymbol}</span>`;
+              backCards[i].style.background = bgColor;
+              backCards[i].style.color = '#fff';
+              backCards[i].style.width = '32px';
+              backCards[i].style.height = '44px';
+              backCards[i].style.fontSize = '16px';
+              backCards[i].classList.add('revealed');
+            }
+          });
+        }
+      }
+
+      function resetCardSelection() {
+        selectedRank = null;
+        selectedSuit = null;
+        seatHoleCards = [];
+        document.querySelectorAll('.seat-modal-card').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('.seat-modal-suit').forEach(s => s.classList.remove('selected'));
+      }
+
+      function openSeatModal(seatEl) {
+        currentSeatEl = seatEl;
+        const pos = seatEl.querySelector('.pos-label').textContent;
+        const stack = seatEl.querySelector('.stack').textContent.replace(/,/g, '');
+        
+        document.getElementById('seatModalPosition').textContent = pos;
+        document.getElementById('seatStackInput').value = parseInt(stack) || 1000;
+        document.getElementById('seatModal').classList.remove('hidden');
+        
+        selectedRank = null;
+        selectedSuit = null;
+        seatHoleCards = [];  // <-- add this line
+        document.querySelectorAll('.seat-modal-card, .seat-modal-suit').forEach(el => el.classList.remove('selected'));
+      }
+
+      function closeSeatModal() {
+        if (currentSeatEl) {
+          const stack = document.getElementById('seatStackInput').value || 1000;
+          currentSeatEl.querySelector('.stack').textContent = Number(stack).toLocaleString();
+        }
+        document.getElementById('seatModal').classList.add('hidden');
+        currentSeatEl = null;
+      }
+
+      function placeButton() {
+        document.querySelectorAll('.seat').forEach(s => s.classList.remove('dealer'));
+        if (currentSeatEl) {
+          currentSeatEl.classList.add('dealer');
+          updateDealerButton();
+        }
+        showToast('Dealer button placed');
+      }
+
+      function sitHere() {
+        document.querySelectorAll('.seat').forEach(s => s.classList.remove('hero'));
+        if (currentSeatEl) {
+          currentSeatEl.classList.add('hero');
+          selectHeroSeat(currentSeatEl);
+        }
+        showToast('You are seated here');
+      }
+
+      function openLinkPlayer() {
+        showToast('Link Player coming soon');
+      }
+
+      let currentBoardSlot = null;
+
+      function openBoardCardModal(slot) {
+        currentBoardSlot = slot;
+        currentSeatEl = null;
+        seatHoleCards = [];
+        selectedRank = null;
+        selectedSuit = null;
+        
+        document.getElementById('seatModalPosition').textContent = 'Board';
+        document.getElementById('seatStackInput').parentElement.style.display = 'none';
+        document.querySelector('.seat-modal-actions').style.display = 'none';
+        document.querySelector('.seat-modal-done').textContent = 'Done';
+        
+        document.querySelectorAll('.seat-modal-card').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('.seat-modal-suit').forEach(s => s.classList.remove('selected'));
+        
+        document.getElementById('seatModal').classList.remove('hidden');
+      }
+
+      function closeBoardCardModal() {
+        document.getElementById('seatStackInput').parentElement.style.display = '';
+        document.querySelector('.seat-modal-actions').style.display = '';
+        currentBoardSlot = null;
+      }
+
+      // Card selection in modal
+      document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.seat-modal-card').forEach(card => {
+          card.addEventListener('click', function() {
+            document.querySelectorAll('.seat-modal-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedRank = this.dataset.rank;
+          });
+        });
+        
+        document.querySelectorAll('.seat-modal-suit').forEach(suit => {
+          suit.addEventListener('click', function() {
+            document.querySelectorAll('.seat-modal-suit').forEach(s => s.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedSuit = this.dataset.suit;
+          });
+        });
+      });
+
+      // Attach click handlers to seats
+      function initSeatClicks() {
+        document.querySelectorAll('.seat').forEach(seat => {
+          seat.addEventListener('click', function(e) {
+            openSeatModal(this);
+          });
+        });
+      }
+
+      // Call on page load
+      initSeatClicks();
+
+    // 5 Dummy Sessions with realistic data
+    let sessions = [
+      {id:1, date:'2025-11-10', location:'Bellagio 2/5', buyin:500, cashout:850, hours:5, bb:5, tips:25, expenses:15, notes:'Great table, caught some big hands'},
+      {id:2, date:'2025-11-08', location:'Aria 1/3', buyin:300, cashout:250, hours:3.5, bb:3, tips:10, expenses:8, notes:'Ran bad, tight table'},
+      {id:3, date:'2025-11-05', location:'Wynn 5/10', buyin:1000, cashout:1650, hours:6, bb:10, tips:40, expenses:20, notes:'Deep run, final table vibes'},
+      {id:4, date:'2025-11-02', location:'Online - GG 0.5/1', buyin:100, cashout:180, hours:2, bb:1, tips:0, expenses:0, notes:'Quick online session, solid profit'},
+      {id:5, date:'2025-10-28', location:'Local Card Room 1/2', buyin:200, cashout:150, hours:4, bb:2, tips:8, expenses:5, notes:'Slow bleed, bad beats'}
+    ];
+    
+    let initialBankroll = 5000;
+    let transactions = [
+      {id:1, type:'deposit', amount:5000, note:'Initial bankroll', date:'2025-10-25', time:'2:00 PM'}
+    ];
+    
+    const HANDS_PER_HOUR = 25;
+    
+    let dataVisible = true;
+    let currentTransactionType = 'deposit';
+    let editingTransactionId = null;
+    let chartXAxisMode = 'sessions'; // 'sessions', 'hours', 'hands'
+    
+    const cardsEl = document.getElementById('cards');
+    const searchInput = document.getElementById('search');
+    const globalSearchInput = document.getElementById('globalSearch');
+    const sessionModal = document.getElementById('sessionModal');
+    const bankrollModal = document.getElementById('bankrollModal');
+    const transactionModal = document.getElementById('transactionModal');
+    const editTransactionModal = document.getElementById('editTransactionModal');
+    const addBtn = document.getElementById('addBtn');
+    const cancelSession = document.getElementById('cancelSession');
+    const saveSession = document.getElementById('saveSession');
+    const userAvatarBtn = document.getElementById('userAvatarBtn');
+    const getCoachBtn = document.getElementById('getCoachBtn');
+    const eyeBtn = document.getElementById('eyeBtn');
+    const headerBankrollCard = document.getElementById('headerBankrollCard');
+    const transactionsList = document.getElementById('transactionsList');
+    const chartToggle = document.getElementById('chartToggle');
+    document.getElementById('addBtn').addEventListener('click', function() {
+      document.getElementById('sessionModal').dataset.editId = '';
+      document.getElementById('sessionModal').classList.remove('hidden');
+    });
+    
+    const pages = {
+      home: document.getElementById('homePage'),
+      sessions: document.getElementById('sessionsPage'),
+      payments: document.getElementById('paymentsPage'),
+      handHistories: document.getElementById('handsPage'),
+      more: document.getElementById('morePage')
+    };
+    
+    function saveData() {
+      localStorage.setItem('sessions', JSON.stringify(sessions));
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+      localStorage.setItem('initialBankroll', initialBankroll);
+    }
+
+    function loadData() {
+      const savedSessions = localStorage.getItem('sessions');
+      if(savedSessions) sessions = JSON.parse(savedSessions);
+      
+      const savedTransactions = localStorage.getItem('transactions');
+      if(savedTransactions) transactions = JSON.parse(savedTransactions);
+      
+      const savedBankroll = localStorage.getItem('initialBankroll');
+      if(savedBankroll) initialBankroll = Number(savedBankroll);
+    }
+
+    function formatCurrency(n){ return '$' + Number(n).toLocaleString(); }
+    
+    function calculateStats() {
+      const totalProfit = sessions.reduce((sum, s) => sum + (s.cashout - s.buyin), 0);
+      const totalHours = sessions.reduce((sum, s) => sum + s.hours, 0);
+      const totalTips = sessions.reduce((sum, s) => sum + (s.tips || 0), 0);
+      const totalExpenses = sessions.reduce((sum, s) => sum + (s.expenses || 0), 0);
+      const totalHands = totalHours * HANDS_PER_HOUR;
+      
+      // Calculate total BB won
+      const totalBBWon = sessions.reduce((sum, s) => {
+        const profit = s.cashout - s.buyin;
+        return sum + (profit / s.bb);
+      }, 0);
+      
+      // BB/100
+      const bb100 = totalHands > 0 ? (totalBBWon / totalHands) * 100 : 0;
+      
+      // BB/Hour
+      const bbHour = totalHours > 0 ? totalBBWon / totalHours : 0;
+      
+      // $/Hour
+      const dollarHour = totalHours > 0 ? totalProfit / totalHours : 0;
+      
+      // Win Ratio
+      const winningSessions = sessions.filter(s => s.cashout > s.buyin).length;
+      const winRatio = sessions.length > 0 ? (winningSessions / sessions.length) * 100 : 0;
+      
+      // Tips in BB/100
+      const totalTipsBB = sessions.reduce((sum, s) => sum + ((s.tips || 0) / s.bb), 0);
+      const tipsBB100 = totalHands > 0 ? (totalTipsBB / totalHands) * 100 : 0;
+      
+      // Expenses in BB/100
+      const totalExpensesBB = sessions.reduce((sum, s) => sum + ((s.expenses || 0) / s.bb), 0);
+      const expensesBB100 = totalHands > 0 ? (totalExpensesBB / totalHands) * 100 : 0;
+      
+      // Avg Session Length
+      const avgSession = sessions.length > 0 ? totalHours / sessions.length : 0;
+      
+      return {
+        totalProfit,
+        totalHours,
+        bb100,
+        bbHour,
+        dollarHour,
+        winRatio,
+        totalTips,
+        tipsBB100,
+        totalExpenses,
+        expensesBB100,
+        avgSession,
+        sessionsCount: sessions.length,
+      };
+    }
+    
+    function updateBankrollTrend() {
+      const stats = calculateStats();
+      const netProfit = stats.totalProfit - stats.totalTips - stats.totalExpenses;
+      const change = netProfit;
+      const percentage = initialBankroll > 0 ? (change / initialBankroll) * 100 : 0;
+      
+      const changeEl = document.getElementById('bankrollChange');
+      const trendEl = document.getElementById('bankrollTrend');
+      
+      if(change >= 0) {
+        changeEl.textContent = `↗ +${formatCurrency(change)}`;
+        changeEl.className = 'header-bankroll-change up';
+        trendEl.textContent = `+${percentage.toFixed(1)}%`;
+        trendEl.className = 'header-bankroll-trend up';
+      } else {
+        changeEl.textContent = `↘ ${formatCurrency(change)}`;
+        changeEl.className = 'header-bankroll-change down';
+        trendEl.textContent = `${percentage.toFixed(1)}%`;
+        trendEl.className = 'header-bankroll-trend down';
+      }
+    }
+    
+    function updateStats() {
+      const stats = calculateStats();
+      
+      // Total Profit (raw winnings)
+      const totalProfit = stats.totalProfit;
+      document.getElementById('statTotalProfit').textContent = '$' + totalProfit.toFixed(1);
+      document.getElementById('statTotalProfit').setAttribute('data-value', '$' + totalProfit.toFixed(1));
+      document.getElementById('statTotalProfit').className = 'stat-value ' + (totalProfit >= 0 ? 'positive' : 'negative');
+
+      // Net Profit (after tips & expenses)
+      const netProfit = totalProfit - stats.totalTips - stats.totalExpenses;
+      const netProfitEl = document.getElementById('statNetProfit');
+      netProfitEl.textContent = 'Net: $' + netProfit.toFixed(1);
+      netProfitEl.setAttribute('data-value', 'Net: $' + netProfit.toFixed(1));
+      netProfitEl.className = 'stat-secondary ' + (netProfit >= 0 ? 'positive' : 'negative');
+
+      document.getElementById('statSessionsPlayed').textContent = stats.sessionsCount;
+      document.getElementById('statSessionsPlayed').setAttribute('data-value', stats.sessionsCount);
+
+      document.getElementById('statHours').textContent = stats.totalHours.toFixed(1);
+      document.getElementById('statHours').setAttribute('data-value', stats.totalHours.toFixed(1));
+
+      // Winrate (raw bb/100)
+      const bb100 = stats.bb100;
+      document.getElementById('statBB100').textContent = bb100.toFixed(1) + ' bb/100';
+      document.getElementById('statBB100').setAttribute('data-value', bb100.toFixed(1) + ' bb/100');
+      document.getElementById('statBB100').className = 'stat-value ' + (bb100 >= 0 ? 'positive' : 'negative');
+
+      // Net Winrate (after tips & expenses in bb/100)
+      const netBB100 = bb100 - stats.tipsBB100 - stats.expensesBB100;
+      const netBB100El = document.getElementById('statNetBB100');
+      netBB100El.textContent = 'Net: ' + netBB100.toFixed(1) + ' bb/100';
+      netBB100El.setAttribute('data-value', 'Net: ' + netBB100.toFixed(1) + ' bb/100');
+      netBB100El.className = 'stat-secondary ' + (netBB100 >= 0 ? 'positive' : 'negative');
+
+      // $/Hour (raw)
+      const dollarHour = stats.dollarHour;
+      document.getElementById('statDollarHour').textContent = '$' + dollarHour.toFixed(1);
+      document.getElementById('statDollarHour').setAttribute('data-value', '$' + dollarHour.toFixed(1));
+      document.getElementById('statDollarHour').className = 'stat-value ' + (dollarHour >= 0 ? 'positive' : 'negative');
+
+      // Net $/Hour (after tips & expenses)
+      const netDollarHour = stats.totalHours > 0 ? (stats.totalProfit - stats.totalTips - stats.totalExpenses) / stats.totalHours : 0;
+      const netDollarHourEl = document.getElementById('statNetDollarHour');
+      netDollarHourEl.textContent = 'Net: $' + netDollarHour.toFixed(1);
+      netDollarHourEl.setAttribute('data-value', 'Net: $' + netDollarHour.toFixed(1));
+      netDollarHourEl.className = 'stat-secondary ' + (netDollarHour >= 0 ? 'positive' : 'negative');
+
+      // Tips
+      document.getElementById('statTips').textContent = '$' + stats.totalTips.toFixed(1);
+      document.getElementById('statTips').className = 'stat-value negative';
+      document.getElementById('statTips').setAttribute('data-value', '$' + stats.totalTips.toFixed(1));
+
+      const tipsBB100El = document.getElementById('statTipsBB100');
+      tipsBB100El.textContent = '-' + stats.tipsBB100.toFixed(1) + ' bb/100';
+      tipsBB100El.setAttribute('data-value', '-' + stats.tipsBB100.toFixed(1) + ' bb/100');
+      tipsBB100El.className = 'stat-secondary negative';
+      
+
+      // Other Expenses
+      document.getElementById('statExpenses').textContent = '$' + stats.totalExpenses.toFixed(1);
+      document.getElementById('statExpenses').className = 'stat-value negative';
+      document.getElementById('statExpenses').setAttribute('data-value', '$' + stats.totalExpenses.toFixed(1));
+
+      const expensesBB100El = document.getElementById('statExpensesBB100');
+      expensesBB100El.textContent = '-' + stats.expensesBB100.toFixed(1) + ' bb/100';
+      expensesBB100El.setAttribute('data-value', '-' + stats.expensesBB100.toFixed(1) + ' bb/100');
+      expensesBB100El.className = 'stat-secondary negative';
+      
+      document.getElementById('statAvgSession').textContent = stats.avgSession.toFixed(1) + 'h';
+      document.getElementById('statAvgSession').setAttribute('data-value', stats.avgSession.toFixed(1) + 'h');
+      
+      // Update chart
+      updateChart();
+      updateBankrollTrend();
+    }
+    
+    function updateChart() {
+      const chartEl = document.getElementById('profitChart');
+      const yAxisEl = document.getElementById('chartYAxis');
+      const xAxisEl = document.getElementById('chartXAxis');
+      
+      if(!chartEl) return;
+      
+      const sortedSessions = [...sessions].sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      if(sortedSessions.length === 0) {
+        chartEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px">No data yet</div>';
+        yAxisEl.innerHTML = '';
+        xAxisEl.innerHTML = '';
+        return;
+      }
+      
+      // Calculate cumulative profits
+      let cumulativeRaw = 0;
+      let cumulativeNet = 0;
+      const dataPoints = sortedSessions.map((s, i) => {
+        const rawProfit = s.cashout - s.buyin;
+        const netProfit = rawProfit - (s.tips || 0) - (s.expenses || 0);
+        cumulativeRaw += rawProfit;
+        cumulativeNet += netProfit;
+        return {
+          x: i,
+          raw: cumulativeRaw,
+          net: cumulativeNet,
+          session: i + 1
+        };
+      });
+      
+      // Find min/max for scaling
+      const allValues = dataPoints.flatMap(d => [d.raw, d.net]);
+      const minY = Math.min(...allValues, 0);
+      const maxY = Math.max(...allValues, 0);
+      const range = maxY - minY || 1;
+      
+      const width = 100;
+      const height = 100;
+      const padding = 2;
+      
+      // Scale function
+      const scaleY = (val) => {
+        return height - padding - ((val - minY) / range) * (height - 2 * padding);
+      };
+      
+      const scaleX = (index) => {
+        return padding + (index / (dataPoints.length - 1 || 1)) * (width - 2 * padding);
+      };
+      
+      // Create smooth curve paths using quadratic bezier
+      const createSmoothPath = (points) => {
+        if(points.length === 0) return '';
+        if(points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+        
+        let path = `M ${points[0].x} ${points[0].y}`;
+        
+        for(let i = 0; i < points.length - 1; i++) {
+          const curr = points[i];
+          const next = points[i + 1];
+          const midX = (curr.x + next.x) / 2;
+          const midY = (curr.y + next.y) / 2;
+          
+          path += ` Q ${curr.x} ${curr.y}, ${midX} ${midY}`;
+        }
+        
+        const last = points[points.length - 1];
+        path += ` L ${last.x} ${last.y}`;
+        
+        return path;
+      };
+      
+      const rawPoints = dataPoints.map((d, i) => ({
+        x: scaleX(i),
+        y: scaleY(d.raw)
+      }));
+      
+      const netPoints = dataPoints.map((d, i) => ({
+        x: scaleX(i),
+        y: scaleY(d.net)
+      }));
+      
+      const rawPath = createSmoothPath(rawPoints);
+      const netPath = createSmoothPath(netPoints);
+      
+      // Y-axis labels
+      const yLabels = [];
+      const numYLabels = 5;
+      for(let i = 0; i < numYLabels; i++) {
+        const value = minY + (range * (numYLabels - 1 - i) / (numYLabels - 1));
+        yLabels.push(formatCurrency(Math.round(value)));
+      }
+      yAxisEl.innerHTML = yLabels.map(label => `<div style="text-align:right;padding-right:5px">${label}</div>`).join('');
+      
+      // Calculate cumulative hours and hands for X-axis
+      let cumulativeHours = 0;
+      let cumulativeHands = 0;
+      const dataPointsWithMetrics = sortedSessions.map((s, i) => {
+        cumulativeHours += s.hours;
+        cumulativeHands += s.hours * HANDS_PER_HOUR;
+        return {
+          session: i + 1,
+          hours: cumulativeHours,
+          hands: Math.round(cumulativeHands)
+        };
+      });
+
+      // X-axis labels based on mode
+      const xLabels = [];
+      const numXLabels = Math.min(5, dataPoints.length);
+
+      for(let i = 0; i < numXLabels; i++) {
+        const index = Math.floor(i * (dataPoints.length - 1) / (numXLabels - 1));
+        const dp = dataPointsWithMetrics[index];
+        
+        if(chartXAxisMode === 'sessions') {
+          xLabels.push(`S${dp.session}`);
+        } else if(chartXAxisMode === 'hours') {
+          xLabels.push(`${dp.hours.toFixed(0)}h`);
+        } else if(chartXAxisMode === 'hands') {
+          xLabels.push(`${dp.hands}`);
+        }
+      }
+
+      xAxisEl.innerHTML = xLabels.map(label => `<div style="text-align:center">${label}</div>`).join('');
+      xAxisEl.innerHTML = xLabels.map(label => `<div style="text-align:center">${label}</div>`).join('');
+      
+      chartEl.innerHTML = `
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+        <!-- Grid lines -->
+        <line x1="0" y1="${scaleY(0)}" x2="${width}" y2="${scaleY(0)}" stroke="rgba(255,255,255,0.1)" stroke-width="0.3"/>
+        
+        <!-- Raw winnings line (gold) - thinner -->
+        <path d="${rawPath}" fill="none" stroke="#d4af37" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        
+        <!-- Net profit line (green) - thinner -->
+        <path d="${netPath}" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+  }
+
+    function openStatDetail(statType) {
+      alert(`Detail view for ${statType} - Coming soon!\n\nThis will show a detailed graph of ${statType} per session.`);
+    }
+
+    function toggleChartXAxis() {
+      if(chartXAxisMode === 'sessions') {
+        chartXAxisMode = 'hours';
+        chartToggle.textContent = '⏱️';
+        chartToggle.title = 'Hours';
+      } else if(chartXAxisMode === 'hours') {
+        chartXAxisMode = 'hands';
+        chartToggle.textContent = 'H';
+        chartToggle.title = 'Hands';
+      } else {
+        chartXAxisMode = 'sessions';
+        chartToggle.textContent = 'S';
+        chartToggle.title = 'Sessions';
+      }
+      
+      updateChart();
+    }
+    
+    function updateBankrollDisplay() {
+      const stats = calculateStats();
+      const netProfit = stats.totalProfit - stats.totalTips - stats.totalExpenses;
+      const currentBankroll = initialBankroll + netProfit;
+      
+      const formatted = formatCurrency(currentBankroll);
+      const headerBankroll = document.querySelector('.header-bankroll-value');
+      const paymentsBankroll = document.getElementById('paymentsBankroll');
+      
+      if(headerBankroll) {
+        headerBankroll.setAttribute('data-value', formatted);
+        if(dataVisible) {
+          headerBankroll.textContent = formatted;
+        } else {
+          headerBankroll.textContent = '****';
+        }
+      }
+      
+      if(paymentsBankroll) {
+        paymentsBankroll.setAttribute('data-value', formatted);
+        if(dataVisible) {
+          paymentsBankroll.textContent = formatted;
+        }
+      }
+      
+      document.getElementById('modalBankroll').textContent = formatted;
+      updateBankrollTrend();
+    }
+    
+    function showPage(pageName) {
+      Object.keys(pages).forEach(key => {
+        pages[key].classList.add('hidden');
+      });
+      pages[pageName].classList.remove('hidden');
+      
+      document.querySelectorAll('.tab-item').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelector(`[data-page="${pageName}"]`)?.classList.add('active');
+      
+      // Show/hide bankroll header based on page
+      const headerBankroll = document.querySelector('.header');
+      if(headerBankroll) {
+        if(pageName === 'home' || pageName === 'payments') {
+          headerBankroll.style.display = 'flex';
+        } else {
+          headerBankroll.style.display = 'none';
+        }
+      }
+      
+      if(pageName === 'sessions') {
+        renderCards();
+      } else if(pageName === 'payments') {
+        renderTransactions();
+      }
+    }
+    
+    function toggleDataVisibility() {
+      dataVisible = !dataVisible;
+  
+
+  document.querySelectorAll('#homePage .stat-value, #homePage .stat-secondary').forEach(el => {
+    if(dataVisible) {
+      el.textContent = el.getAttribute('data-value');
+      el.classList.remove('hidden-data');
+    } else {
+      el.textContent = '****';
+      el.classList.add('hidden-data');
+    }
+  });
+  
+  const headerBankroll = document.querySelector('.header-bankroll-value');
+  if(headerBankroll) {
+    if(dataVisible) {
+      headerBankroll.textContent = headerBankroll.getAttribute('data-value');
+      headerBankroll.classList.remove('hidden-data');
+    } else {
+      headerBankroll.textContent = '****';
+      headerBankroll.classList.add('hidden-data');
+    }
+  }
+  
+  const bankrollLabel = document.querySelector('.header-bankroll-label');
+  const bankrollChange = document.getElementById('bankrollChange');
+  const bankrollTrend = document.getElementById('bankrollTrend');
+
+  if(!dataVisible) {
+    if(bankrollLabel) bankrollLabel.classList.add('hidden-data');
+    if(bankrollChange) bankrollChange.classList.add('hidden-data');
+    if(bankrollTrend) bankrollTrend.classList.add('hidden-data');
+  } else {
+    if(bankrollLabel) bankrollLabel.classList.remove('hidden-data');
+    if(bankrollChange) bankrollChange.classList.remove('hidden-data');
+    if(bankrollTrend) bankrollTrend.classList.remove('hidden-data');
+  }
+
+  const paymentsBankroll = document.getElementById('paymentsBankroll');
+  if(paymentsBankroll) {
+    if(dataVisible) {
+      paymentsBankroll.textContent = paymentsBankroll.getAttribute('data-value');
+      paymentsBankroll.classList.remove('hidden-data');
+    } else {
+      paymentsBankroll.textContent = '****';
+      paymentsBankroll.classList.add('hidden-data');
+    }
+  }
+  
+  const netProfitEl = document.getElementById('statNetProfit');
+  const netDollarHourEl = document.getElementById('statNetDollarHour');
+  
+  if(netProfitEl) {
+    if(dataVisible) {
+      netProfitEl.textContent = netProfitEl.getAttribute('data-value');
+      netProfitEl.classList.remove('hidden-data');
+    } else {
+      netProfitEl.textContent = '****';
+      netProfitEl.classList.add('hidden-data');
+    }
+  }
+  
+  if(netDollarHourEl) {
+    if(dataVisible) {
+      netDollarHourEl.textContent = netDollarHourEl.getAttribute('data-value');
+      netDollarHourEl.classList.remove('hidden-data');
+    } else {
+      netDollarHourEl.textContent = '****';
+      netDollarHourEl.classList.add('hidden-data');
+    }
+  }
+  
+  const changeEl = document.getElementById('bankrollChange');
+  const trendEl = document.getElementById('bankrollTrend');
+  if(changeEl && trendEl) {
+    if(dataVisible) {
+      updateBankrollTrend();
+    } else {
+      changeEl.textContent = '****';
+      trendEl.textContent = '****';
+    }
+  }
+  
+  eyeBtn.innerHTML = dataVisible 
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    
+  localStorage.setItem('dataVisible', dataVisible);
+}
+    
+    function renderCards(filterText=''){
+      cardsEl.innerHTML = '';
+      let filtered = sessions.filter(s => {
+        const q = filterText.trim().toLowerCase();
+        if(!q) return true;
+        return (s.location||'').toLowerCase().includes(q) || (s.notes||'').toLowerCase().includes(q);
+      });
+      if(filtered.length === 0){
+        cardsEl.innerHTML = '<div style="grid-column:1/-1;padding:30px;background:rgba(255,255,255,0.01);border-radius:10px;text-align:center;color:var(--muted);font-size:13px">No sessions to show. Add a session to get started.</div>';
+        return;
+      }
+      filtered.forEach(s => {
+        const profit = (s.cashout||0) - (s.buyin||0);
+        const profitClass = profit >= 0 ? 'profit' : 'loss';
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-header">
+            <div>
+              <div class="session-title">${s.location}</div>
+              <div class="meta">${s.date} • ${s.hours}h</div>
+            </div>
+            <div style="text-align:right">
+              <div class="small muted">Profit</div>
+              <div class="${profitClass}" style="font-size:15px;font-weight:800">${profit >= 0 ? '+' : ''}${formatCurrency(profit)}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px;font-size:11px;color:var(--muted)">
+            <div>Buy-in: ${formatCurrency(s.buyin)}</div>
+            <div>•</div>
+            <div>Cash-out: ${formatCurrency(s.cashout)}</div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:4px;font-size:11px;color:var(--muted)">
+            <div>Tips: ${formatCurrency(s.tips||0)}</div>
+            <div>•</div>
+            <div>Expenses: ${formatCurrency(s.expenses||0)}</div>
+          </div>
+          <div class="card-footer">
+            <div class="note">${s.notes ? s.notes : '<span class=muted>No notes</span>'}</div>
+            <div style="display:flex;gap:6px">
+              <button class="btn ghost" style="padding:6px 8px;font-weight:700;font-size:11px" onclick="editSession(${s.id})">Edit</button>
+              <button class="btn ghost" style="padding:6px 8px;font-weight:700;font-size:11px" onclick="removeSession(${s.id})">Remove</button>
+            </div>
+          </div>
+        `;
+        cardsEl.appendChild(card);
+      });
+    }
+    
+    function renderTransactions() {
+      if(transactions.length === 0) {
+        transactionsList.innerHTML = '<div class="empty-state"><h3>No Transactions Yet</h3><div style="font-size:13px">Add deposits or withdrawals to track your bankroll</div></div>';
+        return;
+      }
+      
+      transactionsList.innerHTML = '';
+      transactions.slice().reverse().forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'transaction-item';
+        const amountClass = t.type === 'deposit' ? 'positive' : 'negative';
+        const amountSign = t.type === 'deposit' ? '+' : '-';
+        
+        item.innerHTML = `
+          <div class="transaction-info">
+            <div class="transaction-type">${t.type === 'deposit' ? 'Deposit' : 'Withdraw'}</div>
+            <div class="transaction-date">${t.date}, ${t.time}</div>
+            ${t.note ? `<div class="transaction-note">${t.note}</div>` : ''}
+          </div>
+          <div class="transaction-amount ${amountClass}">${amountSign}${formatCurrency(t.amount)}</div>
+          <button class="transaction-edit-btn" onclick="openEditTransaction(${t.id})">Edit</button>
+        `;
+        transactionsList.appendChild(item);
+      });
+    }
+    
+    function openEditTransaction(id) {
+      const t = transactions.find(tr => tr.id === id);
+      if (!t) return;
+      
+      editTransactionModal.dataset.editId = id;
+      document.getElementById('editTransactionAmount').value = t.amount;
+      document.getElementById('editTransactionNote').value = t.note || '';
+      editTransactionModal.classList.remove('hidden');
+    }
+
+    function editSession(id){
+      const s = sessions.find(x => x.id === id);
+      if(!s) return;
+      document.getElementById('s_date').value = s.date || '';
+      document.getElementById('s_location').value = s.location || '';
+      document.getElementById('s_buyin').value = s.buyin || '';
+      document.getElementById('s_cashout').value = s.cashout || '';
+      document.getElementById('s_hours').value = s.hours || '';
+      document.getElementById('s_bb').value = s.bb || '';
+      document.getElementById('s_tips').value = s.tips || '';
+      document.getElementById('s_expenses').value = s.expenses || '';
+      document.getElementById('s_notes').value = s.notes || '';
+      sessionModal.dataset.editId = id;
+      sessionModal.style.display = 'flex';
+    }
+
+    let deletedSession = null;
+    function removeSession(id){
+      deletedSession = sessions.find(s => s.id === id);
+      sessions = sessions.filter(s => s.id !== id);
+      saveData();
+      renderCards(searchInput.value);
+      updateStats();
+      updateBankrollDisplay();
+      showUndo();
+    }
+    
+    function showUndo(){
+      const toast = document.createElement('div');
+      toast.id = 'undoToast';
+      toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:12px 16px;border-radius:8px;display:flex;gap:12px;align-items:center;z-index:100;font-size:13px';
+      toast.innerHTML = 'Session deleted <button onclick="undoDelete()" style="background:var(--accent);border:none;color:#000;padding:6px 12px;border-radius:6px;font-weight:700;cursor:pointer">Undo</button>';
+      document.body.appendChild(toast);
+      setTimeout(() => { if(document.getElementById('undoToast')) document.getElementById('undoToast').remove(); }, 5000);
+    }
+    function undoDelete(){
+      if(deletedSession){
+        sessions.push(deletedSession);
+        sessions.sort((a,b) => new Date(b.date) - new Date(a.date));
+        deletedSession = null;
+        saveData();
+        renderCards(searchInput.value);
+        updateStats();
+        updateBankrollDisplay();
+      }
+      document.getElementById('undoToast')?.remove();
+    }
+    
+    function openTransactionModal(type) {
+      currentTransactionType = type;
+      document.getElementById('transactionModalTitle').textContent = type === 'deposit' ? 'Deposit' : 'Withdraw';
+      document.getElementById('transactionAmount').value = '';
+      document.getElementById('transactionNote').value = '';
+      transactionModal.classList.remove('hidden');
+    }
+       
+    function saveTransaction() {
+      const amount = Number(document.getElementById('transactionAmount').value);
+      const note = document.getElementById('transactionNote').value;
+      
+      if(!amount || amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+      }
+      
+      const now = new Date();
+      const transaction = {
+      id: Date.now(),
+        type: currentTransactionType,
+        amount: amount,
+        note: note,
+        date: now.toISOString().slice(0,10),
+        time: now.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true})
+      };
+      
+      transactions.push(transaction);
+      
+      if(currentTransactionType === 'deposit') {
+        initialBankroll += amount;
+      } else {
+        initialBankroll -= amount;
+      }
+      
+      saveData(); // ADD THIS LINE
+
+      updateBankrollDisplay();
+      transactionModal.classList.add('hidden');
+      
+      if(pages.payments.classList.contains('hidden') === false) {
+        renderTransactions();
+      }
+    }
+    
+    function saveEditTransaction() {
+      const id = Number(editTransactionModal.dataset.editId);
+      const transaction = transactions.find(t => t.id === id);
+      if(!transaction) return;
+      
+      const newAmount = Number(document.getElementById('editTransactionAmount').value);
+      const newNote = document.getElementById('editTransactionNote').value;
+      
+      if(!newAmount || newAmount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+      }
+      
+      // Reverse the old transaction's effect on initialBankroll
+      if(transaction.type === 'deposit') {
+        initialBankroll -= transaction.amount;
+      } else {
+        initialBankroll += transaction.amount;
+      }
+      
+      // Update transaction values
+      transaction.amount = newAmount;
+      transaction.note = newNote;
+      
+      // Apply the new transaction's effect on initialBankroll
+      if(transaction.type === 'deposit') {
+        initialBankroll += newAmount;
+      } else {
+        initialBankroll -= newAmount;
+      }
+      
+      saveData();
+      updateBankrollDisplay();
+      editTransactionModal.classList.add('hidden');
+      renderTransactions();
+    }
+    
+    function deleteTransaction() {
+      if(!confirm('Are you sure you want to delete this transaction?')) return;
+      
+      const id = Number(editTransactionModal.dataset.editId);
+      const transaction = transactions.find(t => t.id === id);
+      if(!transaction) return;
+      
+      if(transaction.type === 'deposit') {
+        initialBankroll -= transaction.amount;
+      } else {
+        initialBankroll += transaction.amount;
+      }
+      
+      transactions = transactions.filter(t => t.id !== id);
+      
+      saveData();
+      updateBankrollDisplay();
+      editTransactionModal.classList.add('hidden');
+      renderTransactions();
+    }
+    
+    // Event Listeners
+    document.querySelectorAll('.tab-item').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        showPage(tab.getAttribute('data-page'));
+      });
+    });
+    chartToggle.addEventListener('click', toggleChartXAxis);
+    
+    headerBankrollCard.addEventListener('click', () => {
+      bankrollModal.classList.remove('hidden');
+    });
+    
+    document.getElementById('closeBankrollModal').addEventListener('click', () => {
+      bankrollModal.classList.add('hidden');
+    });
+    
+    document.getElementById('modalDepositBtn').addEventListener('click', () => {
+      bankrollModal.classList.add('hidden');
+      openTransactionModal('deposit');
+    });
+    
+    document.getElementById('modalWithdrawBtn').addEventListener('click', () => {
+      bankrollModal.classList.add('hidden');
+      openTransactionModal('withdraw');
+    });
+    
+    document.getElementById('viewTransactionsBtn').addEventListener('click', () => {
+      bankrollModal.classList.add('hidden');
+      showPage('payments');
+    });
+    
+    document.getElementById('depositBtn').addEventListener('click', () => {
+      openTransactionModal('deposit');
+    });
+    
+    document.getElementById('withdrawBtn').addEventListener('click', () => {
+      openTransactionModal('withdraw');
+    });
+    
+    document.getElementById('cancelTransaction').addEventListener('click', () => {
+      transactionModal.classList.add('hidden');
+    });
+    
+    document.getElementById('saveTransaction').addEventListener('click', saveTransaction);
+    
+    document.getElementById('cancelEditTransaction').addEventListener('click', () => {
+      editTransactionModal.classList.add('hidden');
+    });
+    
+    document.getElementById('saveEditTransaction').addEventListener('click', saveEditTransaction);
+    
+    document.getElementById('deleteTransaction').addEventListener('click', deleteTransaction);
+    
+    eyeBtn.addEventListener('click', toggleDataVisibility);
+    
+    searchInput.addEventListener('input', (e) => renderCards(e.target.value));
+    
+    globalSearchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      console.log('Global search:', query);
+    });
+    
+    addBtn.addEventListener('click', ()=> {
+      sessionModal.style.display = 'flex';
+      document.getElementById('s_date').value = new Date().toISOString().slice(0,10);
+      document.getElementById('s_location').value = '';
+      document.getElementById('s_buyin').value = '';
+      document.getElementById('s_cashout').value = '';
+      document.getElementById('s_hours').value = '';
+      document.getElementById('s_bb').value = '';
+      document.getElementById('s_tips').value = '';
+      document.getElementById('s_expenses').value = '';
+      document.getElementById('s_notes').value = '';
+    });
+    
+    userAvatarBtn.addEventListener('click', ()=> alert('User Profile - placeholder'));
+    
+    getCoachBtn.addEventListener('click', ()=> alert('Get Coach - placeholder'));
+    
+    cancelSession.addEventListener('click', ()=> sessionModal.style.display = 'none');
+    
+    sessionModal.addEventListener('click', (e)=> { 
+      if(e.target === sessionModal) sessionModal.style.display='none' 
+    });
+    
+    bankrollModal.addEventListener('click', (e)=> { 
+      if(e.target === bankrollModal) bankrollModal.classList.add('hidden')
+    });
+    
+    transactionModal.addEventListener('click', (e) => { 
+      if (e.target === transactionModal) transactionModal.classList.add('hidden');
+    });
+    
+    editTransactionModal.addEventListener('click', (e)=> { 
+      if(e.target === editTransactionModal) editTransactionModal.style.display='none' 
+    });
+    
+    saveSession.addEventListener('click', ()=> {
+      const date = document.getElementById('s_date').value || new Date().toISOString().slice(0,10);
+      const location = document.getElementById('s_location').value || 'Unknown';
+      const buyin = Number(document.getElementById('s_buyin').value || 0);
+      const cashout = Number(document.getElementById('s_cashout').value || 0);
+      const hours = Number(document.getElementById('s_hours').value || 0);
+      const bb = Number(document.getElementById('s_bb').value || 1);
+      const tips = Number(document.getElementById('s_tips').value || 0);
+      const expenses = Number(document.getElementById('s_expenses').value || 0);
+      const notes = document.getElementById('s_notes').value || '';
+
+      if (buyin <= 0 || hours <= 0) {
+        showToast('Buy-in and hours must be greater than 0');
+        return;
+      }
+
+      const editId = sessionModal.dataset.editId;
+      if(editId){
+        const idx = sessions.findIndex(s => s.id === parseInt(editId));
+        if(idx > -1) sessions[idx] = {id:parseInt(editId),date,location,buyin,cashout,hours,bb,tips,expenses,notes};
+        delete sessionModal.dataset.editId;
+      } else {
+        const id = Math.max(0,...sessions.map(s=>s.id)) + 1;
+        sessions.unshift({id,date,location,buyin,cashout,hours,bb,tips,expenses,notes});
+      }
+      saveData();
+      sessionModal.style.display='none';
+      updateStats();
+      updateBankrollDisplay();
+      showPage('sessions');
+    });
+  
+     // Restore visibility preference
+     const savedVisibility = localStorage.getItem('dataVisible');
+    if(savedVisibility !== null) {
+      dataVisible = savedVisibility === 'true';
+      if(!dataVisible) {
+        // Apply hidden state without toggling
+        document.querySelectorAll('#homePage .stat-value, #homePage .stat-secondary').forEach(el => {
+          el.textContent = '****';
+          el.classList.add('hidden-data');
+        });
+        
+        const headerBankroll = document.querySelector('.header-bankroll-value');
+        if(headerBankroll) {
+          headerBankroll.textContent = '****';
+          headerBankroll.classList.add('hidden-data');
+        }
+        
+        const bankrollLabel = document.querySelector('.header-bankroll-label');
+        const bankrollChange = document.getElementById('bankrollChange');
+        const bankrollTrend = document.getElementById('bankrollTrend');
+        if(bankrollLabel) bankrollLabel.classList.add('hidden-data');
+        if(bankrollChange) {
+          bankrollChange.textContent = '****';
+          bankrollChange.classList.add('hidden-data');
+        }
+        if(bankrollTrend) {
+          bankrollTrend.textContent = '****';
+          bankrollTrend.classList.add('hidden-data');
+        }
+        
+        const paymentsBankroll = document.getElementById('paymentsBankroll');
+        if(paymentsBankroll) {
+          paymentsBankroll.textContent = '****';
+          paymentsBankroll.classList.add('hidden-data');
+        }
+        
+        const netProfitEl = document.getElementById('statNetProfit');
+        const netDollarHourEl = document.getElementById('statNetDollarHour');
+        if(netProfitEl) {
+          netProfitEl.textContent = '****';
+          netProfitEl.classList.add('hidden-data');
+        }
+        if(netDollarHourEl) {
+          netDollarHourEl.textContent = '****';
+          netDollarHourEl.classList.add('hidden-data');
+        }
+        
+        eyeBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      }
+    }
+
+    showPage('home');
+
+    // More menu item clicks
+    document.querySelectorAll('.more-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const action = item.getAttribute('data-action');
+        
+        if(action === 'payments') {
+          showPage('payments');
+        } else {
+          alert(item.querySelector('.more-title').textContent + ' - Coming soon');
+        }
+      });
+    });
+
+    // Replayer State
+    let replayerState = {
+      actions: [],
+      pot: 0,
+      street: 'preflop',
+      activePlayer: null,
+      heroCards: [],
+      communityCards: [],
+      notes: ''
+    };
+
+    let heroSelected = false;
+
+    const POSITIONS = ['CO', 'HJ', 'LJ', 'MP', 'EP', 'UTG', 'BB', 'SB', 'BTN'];
+
+    function initSeatSelection() {
+      const seats = document.querySelectorAll('.seat');
+      seats.forEach((seat, index) => {
+        seat.dataset.originalIndex = index;
+        const posIndex = (8 - index) % 9;
+        seat.querySelector('.pos-label').textContent = POSITIONS[posIndex];
+        seat.querySelector('.pos-label').classList.remove('hero-label');
+        seat.classList.remove('hero');
+        seat.onclick = () => openSeatModal(seat);
+      });
+      heroSelected = false;
+      updateDealerButton();
+    }
+
+    function selectHeroSeat(seat) {
+      const seats = Array.from(document.querySelectorAll('.seat'));
+      const clickedLabel = seat.querySelector('.pos-label').textContent;
+      const clickedLabelIndex = POSITIONS.indexOf(clickedLabel);
+
+      // Clear hero from all seats first
+      seats.forEach(s => {
+        s.classList.remove('hero');
+        s.querySelector('.pos-label').classList.remove('hero-label');
+      });
+
+      // Rotate labels CLOCKWISE so clicked label lands on seat-1
+      seats.forEach(s => {
+        const match = s.className.match(/seat-(\d)/);
+        const seatNum = match ? parseInt(match[1]) : 0;
+        
+        // Clockwise: subtract seatNum
+        const labelIndex = (clickedLabelIndex - seatNum + 10) % 9;
+        s.querySelector('.pos-label').textContent = POSITIONS[labelIndex];
+      });
+
+      // Mark seat-1 as hero
+      const heroSeat = document.querySelector('.seat-1');
+      heroSeat.classList.add('hero');
+      heroSeat.querySelector('.pos-label').classList.add('hero-label');
+
+      heroSelected = true;
+      updateDealerButton();
+    }
+
+    function updateDealerButton() {
+      const seats = document.querySelectorAll('.seat');
+      
+      seats.forEach(seat => {
+        const existing = seat.querySelector('.dealer-btn');
+        if (existing) existing.remove();
+      });
+      
+      seats.forEach(seat => {
+        const label = seat.querySelector('.pos-label').textContent;
+        if (label === 'BTN') {
+          const btn = document.createElement('div');
+          btn.className = 'dealer-btn';
+          btn.textContent = '♠';
+          
+          const match = seat.className.match(/seat-(\d)/);
+          const visualPos = match ? parseInt(match[1]) : 0;
+          
+          // All positions point INWARD toward the felt
+          if (visualPos === 1) { btn.style.cssText = 'top:-40px;left:50%;transform:translateX(-50%)'; }
+          else if (visualPos === 2) { btn.style.cssText = 'top:0;left:100%;margin-left:30px'; }
+          else if (visualPos === 3) { btn.style.cssText = 'top:50%;left:100%;margin-left:20px;transform:translateY(-50%)'; }
+          else if (visualPos === 4) { btn.style.cssText = 'top:50px;right:-40px'; }
+          else if (visualPos === 5) { btn.style.cssText = 'top:85px;right:-30px'; }
+          else if (visualPos === 6) { btn.style.cssText = 'top:85px;left:-30px'; }
+          else if (visualPos === 7) { btn.style.cssText = 'top:50px;left:-40px'; }
+          else if (visualPos === 8) { btn.style.cssText = 'top:50%;right:100%;margin-right:20px;transform:translateY(-50%)'; }
+          else if (visualPos === 9) { btn.style.cssText = 'bottom:20;right:100%;margin-right:30px'; }
+          
+          seat.appendChild(btn);
+        }
+      });
+    }
+    function openReplayer() {
+      document.getElementById('replayerModal').classList.remove('hidden');
+      resetReplayer();
+    }
+
+    function closeReplayer() {
+      document.getElementById('replayerModal').classList.add('hidden');
+    }
+
+    function resetReplayer() {
+      replayerState = { actions: [], pot: 0, street: 'preflop', activePlayer: null, heroCards: [], communityCards: [], notes: '' };
+      document.getElementById('actionHistory').innerHTML = '<div class="action-item" style="color:var(--muted);text-align:center;padding:20px;">No actions yet</div>';
+      document.getElementById('handNotes').value = '';
+      updatePotDisplay();
+      initSeatSelection();
+    }
+
+    function addAction(type) {
+      const action = { type, player: 'Hero', amount: 0 };
+      if (type === 'bet' || type === 'raise') {
+        const amount = prompt('Enter amount:');
+        if (!amount) return;
+        action.amount = parseFloat(amount);
+      }
+      if (type === 'call') {
+        const amount = prompt('Call amount:');
+        if (!amount) return;
+        action.amount = parseFloat(amount);
+      }
+      replayerState.actions.push(action);
+      replayerState.pot += action.amount || 0;
+      renderActions();
+      updatePotDisplay();
+    }
+
+    function renderActions() {
+      const container = document.getElementById('actionHistory');
+      if (replayerState.actions.length === 0) {
+        container.innerHTML = '<div class="action-pill empty">No actions yet</div>';
+        return;
+      }
+      container.innerHTML = replayerState.actions.map(a => `
+        <div class="action-pill ${a.type}">
+          <span class="action-text">${a.type.charAt(0).toUpperCase() + a.type.slice(1)}${a.amount ? ' $' + a.amount : ''}</span>
+          <span class="action-player">${a.player || 'Hero'}</span>
+        </div>
+      `).join('');
+    }
+
+    function updatePotDisplay() {
+      document.getElementById('potAmount').textContent = replayerState.pot;
+    }
+
+    function shareHand() {
+      // Save first, then share
+      replayerState.notes = document.getElementById('handNotes').value;
+      let hands = JSON.parse(localStorage.getItem('pokerHands') || '[]');
+      hands.unshift({ ...replayerState, id: Date.now(), date: new Date().toISOString() });
+      localStorage.setItem('pokerHands', JSON.stringify(hands));
+      renderHandsList();
+      
+      // Share logic - copy to clipboard or native share
+      if (navigator.share) {
+        navigator.share({ title: 'Poker Hand', text: `Pot: $${replayerState.pot}, Actions: ${replayerState.actions.length}` });
+      } else {
+        showToast('Hand saved!');
+      }
+      closeReplayer();
+    }
+
+    function switchReplayerTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('actionHistory').classList.toggle('hidden', tab === 'notes');
+      document.getElementById('notesPanel').classList.toggle('hidden', tab !== 'notes');
+    }
+
+    function toggleShowCards() {
+      // Toggle card visibility logic
+    }
+
+    function saveHand() {
+      replayerState.notes = document.getElementById('handNotes').value;
+      let hands = JSON.parse(localStorage.getItem('pokerHands') || '[]');
+      hands.unshift({ ...replayerState, id: Date.now(), date: new Date().toISOString() });
+      localStorage.setItem('pokerHands', JSON.stringify(hands));
+      renderHandsList();
+      closeReplayer();
+      showToast('Hand saved!');
+    }
+
+    function renderHandsList() {
+      const hands = JSON.parse(localStorage.getItem('pokerHands') || '[]');
+      const container = document.getElementById('handsList');
+      if (hands.length === 0) {
+        container.innerHTML = `<div style="text-align:center;color:var(--muted);padding:40px 20px;">
+          <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom:12px;opacity:0.5;"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM12 8v8M8 12h8"/></svg>
+          <p style="margin:0;font-weight:600;">No hands recorded</p>
+          <p style="margin:4px 0 0;font-size:13px;">Tap + Add Hand to record your first hand</p>
+        </div>`;
+        return;
+      }
+      container.innerHTML = hands.map(h => `
+        <div class="card" onclick="viewHand(${h.id})" style="margin-bottom:12px;padding:12px;cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:600;">Pot: $${h.pot}</span>
+            <span style="color:var(--muted);font-size:12px;">${new Date(h.date).toLocaleDateString()}</span>
+          </div>
+          <div style="color:var(--muted);font-size:13px;margin-top:4px;">${h.actions.length} actions • ${h.street}</div>
+        </div>
+      `).join('');
+    }
+
+    function viewHand(id) {
+      const hands = JSON.parse(localStorage.getItem('pokerHands') || '[]');
+      const hand = hands.find(h => h.id === id);
+      if (!hand) return;
+      openReplayer();
+      replayerState = { ...hand };
+      renderActions();
+      updatePotDisplay();
+      document.getElementById('handNotes').value = hand.notes || '';
+    }
+
+    function playReplay() {
+      // Animate through actions
+    }
+
+    function prevAction() {
+      // Step back
+    }
+
+    function nextAction() {
+      // Step forward
+    }
+
+    // Initialize
+    loadData();
+    updateBankrollDisplay();
+    updateStats();
+    initCardSelection();
+
+    // Initialize hands list on page load
+    renderHandsList();
+
+   </script>
+</body>
+</html>

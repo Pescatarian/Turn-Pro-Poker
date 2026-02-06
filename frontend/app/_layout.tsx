@@ -1,9 +1,15 @@
-import { Stack } from 'expo-router';
+import { Slot } from 'expo-router';
+import { AuthProvider } from '../contexts/AuthContext';
+import { SubscriptionProvider } from '../contexts/SubscriptionContext';
+import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-    </Stack>
+    <AuthProvider>
+      <SubscriptionProvider>
+        <Slot />
+        <StatusBar style="light" />
+      </SubscriptionProvider>
+    </AuthProvider>
   );
 }

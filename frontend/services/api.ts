@@ -19,14 +19,15 @@ const storage = {
     },
 };
 
-// Use your computer's IP for Android Emulator or localhost for iOS Simulator
-// Replace with your actual backend URL when deploying
-// const BASE_URL = 'http://localhost:8000/api/v1'
-const BASE_URL = 'http://192.168.1.152:8000/api/v1'
+// Backend URL - automatically uses production Render URL
+// For local development, uncomment the localhost line
+const BASE_URL = __DEV__
+    ? 'http://192.168.1.152:8000/api/v1'  // Local development
+    : 'https://turn-pro-poker-api.onrender.com/api/v1'  // Production
 
 export const api = axios.create({
     baseURL: BASE_URL,
-    timeout: 5000, // 5 seconds timeout
+    timeout: 15000, // 15 seconds timeout (Render free tier can have cold starts)
     headers: {
         'Content-Type': 'application/json',
     },

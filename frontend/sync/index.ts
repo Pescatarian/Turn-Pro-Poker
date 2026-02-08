@@ -26,6 +26,6 @@ export async function sync() {
                 throw error
             }
         },
-        migrationsEnabledAtVersion: 1,
+        migrationsEnabledAtVersion: 3,
     })
 }

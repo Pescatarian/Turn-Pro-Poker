@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, TextInput } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSync } from '../../contexts/SyncContext';
 import { database } from '../../model';
 import Session from '../../model/Session';
 import { Q } from '@nozbe/watermelondb';
@@ -10,10 +11,12 @@ import { COLORS, GRADIENTS } from '../../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { BankrollChart } from '../../components/dashboard/BankrollChart';
+import { SyncIndicator } from '../../components/SyncIndicator';
 import Svg, { Circle, Path, Line } from 'react-native-svg';
 
 export default function Dashboard() {
     const { user } = useAuth();
+    const { triggerSync } = useSync();
     const [refreshing, setRefreshing] = useState(false);
     const [privacyMode, setPrivacyMode] = useState(false);
 
@@ -109,7 +112,10 @@ export default function Dashboard() {
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await loadData();
+        await Promise.all([
+            loadData(),
+            triggerSync()
+        ]);
         setRefreshing(false);
     };
 
@@ -181,6 +187,8 @@ export default function Dashboard() {
                         </View>
                         <ChevronRight />
                     </TouchableOpacity>
+
+                    <SyncIndicator />
 
                     <TouchableOpacity style={styles.eyeBtn} onPress={() => setPrivacyMode(!privacyMode)}>
                         <EyeIcon />

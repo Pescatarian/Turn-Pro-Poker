@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { SubscriptionProvider } from '../contexts/SubscriptionContext';
 import { SessionModalProvider } from '../contexts/SessionModalContext';
 import { PasscodeLockProvider, usePasscodeLock } from '../contexts/PasscodeLockContext';
+import { SyncProvider } from '../contexts/SyncContext';
 import { PasscodeLockScreen } from '../components/auth/PasscodeLockScreen';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
@@ -41,7 +42,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <SubscriptionProvider>
-        <AppWithPasscodeLock />
+        <SyncProvider>
+          <AppWithPasscodeLock />
+        </SyncProvider>
       </SubscriptionProvider>
     </AuthProvider>
   );

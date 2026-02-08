@@ -1,29 +1,88 @@
 # Turn Pro Poker
 
-Live Poker Bankroll Management App
+Professional poker session tracking and bankroll management app.
 
 ## Quick Start
 
+### Backend (FastAPI)
 ```bash
 cd backend
 pip install -r requirements.txt
 cp .env.example .env
-python -m uvicorn app.main:app --reload
+py -3.11 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
 API docs: http://localhost:8000/docs
+
+### Frontend (Expo React Native)
+```bash
+cd frontend
+npm install
+npx expo start --dev-client  # For custom dev client (native modules)
+# OR
+npx expo start               # For Expo Go (limited features)
+```
 
 ## Features
 
-- Session tracking with profit/loss calculations
-- Bankroll management (deposits/withdrawals)
-- Statistics (BB/100, $/hour, win rate)
-- JWT authentication
-- Subscription tiers (Free/Premium/Pro)
+- **Session Tracking**: Log buy-ins, cash-outs, game type, stakes, location
+- **Bankroll Management**: Track deposits, withdrawals, running balance
+- **Statistics**: Hourly rate, win rate, total profit, session history
+- **Hand Replayer**: Record and review individual hands
+- **Privacy Mode**: Hide sensitive information
+- **Offline-First**: Works without internet, syncs when connected
+- **JWT Authentication**: Secure user accounts
 
 ## Tech Stack
 
-- FastAPI + SQLAlchemy 2.0
-- PostgreSQL (prod) / SQLite (dev)
-- Pydantic for validation
-- JWT authentication
+| Layer | Technology |
+|-------|------------|
+| **Mobile** | React Native + Expo |
+| **Database (Mobile)** | WatermelonDB (SQLite) |
+| **Backend** | FastAPI + SQLAlchemy 2.0 |
+| **Database (Server)** | PostgreSQL (prod) / SQLite (dev) |
+| **Auth** | JWT + bcrypt |
+
+## Development Builds
+
+For native module support (WatermelonDB SQLite), use EAS Build:
+
+```bash
+cd frontend
+npx eas login
+npx eas build --profile development --platform android
+# Install the resulting APK on your device
+npx expo start --dev-client
+```
+
+## Deployment
+
+### Backend
+Deploy to Render.com or Railway:
+- Root Directory: `backend`
+- Build: `pip install -r requirements.txt`
+- Start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+
+### Frontend
+Build for app stores via EAS:
+```bash
+eas build --platform android  # Play Store
+eas build --platform ios      # App Store
+```
+
+## Project Structure
+
+```
+Turn-Pro-Poker/
+├── backend/          # FastAPI server
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── models/
+│   │   └── routers/
+│   └── requirements.txt
+├── frontend/         # Expo React Native app
+│   ├── app/          # expo-router pages
+│   ├── model/        # WatermelonDB models
+│   ├── components/
+│   └── app.json
+└── index.html        # Original prototype
+```

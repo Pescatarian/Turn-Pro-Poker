@@ -21,12 +21,7 @@ export default function SessionsLayout() {
             <Stack.Screen
                 name="index"
                 options={{
-                    title: 'Sessions',
-                    headerRight: () => (
-                        <TouchableOpacity onPress={() => router.push('/(tabs)/sessions/new' as any)}>
-                            <Ionicons name="add" size={24} color="#e94560" style={{ marginRight: 15 }} />
-                        </TouchableOpacity>
-                    ),
+                    headerShown: false,
                 }}
             />
             <Stack.Screen

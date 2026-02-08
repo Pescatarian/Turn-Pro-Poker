@@ -44,10 +44,16 @@ api.interceptors.request.use(
     (error: any) => Promise.reject(error)
 )
 
-// Add interceptor to handle 401s (token expiry)
+// Add interceptor to handle errors
 api.interceptors.response.use(
     (response: any) => response,
     async (error: any) => {
+        if (error.code === 'ERR_NETWORK') {
+            console.error('API Connection Error: ', error.message, error.config?.url);
+            console.error('Make sure your phone is on the same Wi-Fi as your computer.');
+            console.error('Check firewall settings on your computer.');
+        }
+
         if (error.response?.status === 401) {
             // Handle logout or refresh (future task)
             await storage.deleteItemAsync('token')
@@ -55,4 +61,5 @@ api.interceptors.response.use(
         return Promise.reject(error)
     }
 )
+
 

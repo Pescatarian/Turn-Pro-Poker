@@ -19,40 +19,70 @@ const storage = {
     },
 };
 
-// Backend URL - automatically uses production Render URL
-// For local development, uncomment the localhost line
-const BASE_URL = __DEV__
-    ? 'http://192.168.1.152:8000/api/v1'  // Local development
-    : 'https://turn-pro-poker-api.onrender.com/api/v1'  // Production
+// Backend URL - Loaded from device storage (configurable in-app!)
+// Users can change this from the settings icon on login screen - NO REBUILD NEEDED!
 
+let BASE_URL = 'https://turn-pro-poker-api.onrender.com/api/v1'; // Default fallback
+
+// Load URL from storage on app start
+storage.getItemAsync('api_base_url').then(url => {
+    if (url) {
+        BASE_URL = url;
+        console.log('🌐 API Base URL (from storage):', BASE_URL);
+    } else {
+        console.log('🌐 API Base URL (default):', BASE_URL);
+    }
+}).catch(() => {
+    console.log('🌐 API Base URL (default, storage error):', BASE_URL);
+});
+
+// Export function to get current URL dynamically
+export const getBaseUrl = async () => {
+    try {
+        const stored = await storage.getItemAsync('api_base_url');
+        return stored || BASE_URL;
+    } catch {
+        return BASE_URL;
+    }
+};
+
+
+
+// Create API instance with dynamic baseURL
 export const api = axios.create({
-    baseURL: BASE_URL,
     timeout: 15000, // 15 seconds timeout (Render free tier can have cold starts)
     headers: {
         'Content-Type': 'application/json',
     },
-})
+});
 
-// Add interceptor to add token
+// Interceptor to set baseURL dynamically from storage before each request
 api.interceptors.request.use(
     async (config: any) => {
-        const token = await storage.getItemAsync('token')
+        // Get latest URL from storage
+        const currentUrl = await getBaseUrl();
+        config.baseURL = currentUrl;
+
+        // Add auth token if available
+        const token = await storage.getItemAsync('token');
         if (token) {
-            config.headers.Authorization = `Bearer ${token}`
+            config.headers.Authorization = `Bearer ${token}`;
         }
-        return config
+        return config;
     },
     (error: any) => Promise.reject(error)
-)
+);
+
+
 
 // Add interceptor to handle errors
 api.interceptors.response.use(
     (response: any) => response,
     async (error: any) => {
         if (error.code === 'ERR_NETWORK') {
-            console.error('API Connection Error: ', error.message, error.config?.url);
-            console.error('Make sure your phone is on the same Wi-Fi as your computer.');
-            console.error('Check firewall settings on your computer.');
+            console.error('❌ API Connection Error:', error.message);
+            console.error('📍 Trying to connect to:', error.config?.url);
+            console.error('💡 Make sure backend is running and IP is correct in .env file');
         }
 
         if (error.response?.status === 401) {

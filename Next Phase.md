@@ -1,6 +1,6 @@
 # Turn Pro Poker - Development Roadmap
 
-> **📍 Current Status:** Phase 2 complete! Sync working. Backend on Render, app syncing successfully.  
+> **📍 Current Status:** Phase 2.5 complete! Sync working. Hot-reload workflow configured. EAS Update ready.  
 > **🎯 Next Priority:** Phase 3: Configure RevenueCat → iOS Build → UI Polish
 
 ---
@@ -10,7 +10,7 @@
 **Completed:** Feb 8, 2026
 
 ### Tasks
-- [x] Deploy to Render.com (or Railway/Fly.io)
+- [x] Deploy to Render.com
 - [x] Configure PostgreSQL managed database
 - [x] Set environment variables (JWT_SECRET, DATABASE_URL, CORS_ORIGINS)
 - [x] Test `/health` endpoint
@@ -44,6 +44,32 @@
 
 ---
 
+## Phase 2.5: Hot-Reload Workflow & EAS Update ✅ **COMPLETE**
+**Duration:** 1 day  
+**Completed:** Feb 9, 2026
+
+### Tasks
+- [x] Configured EAS Update for over-the-air updates
+- [x] Built preview APK with update support
+- [x] Implemented in-app backend URL configuration
+- [x] Added gear icon (⚙️) on login screen for settings
+- [x] Created `ApiConfigContext` for URL management
+- [x] Created `ApiSettingsModal` with preset + custom URLs
+- [x] Switched from AsyncStorage to SecureStore
+- [x] Removed react-native-dotenv dependency
+- [x] Added detailed error logging for debugging
+- [x] Tested instant updates (working in ~30 sec)
+
+**Features:**
+- ⚙️ Tap gear icon → change backend URL instantly
+- 🚀 Push code updates without rebuilding APK
+- 🌐 Works from any WiFi (cloud backend)
+- 📱 One APK receives all future updates
+
+**Deliverable:** ✅ Development workflow optimized - no more 15-minute rebuilds!
+
+---
+
 ## Phase 3: RevenueCat & IAP Setup ⏳ **← START HERE**
 **Duration:** 3-4 days  
 **Status:** SDK integrated, needs configuration
@@ -67,7 +93,7 @@
 
 ### Tasks
 - [ ] Configure iOS bundle ID in `app.json`
-- [ ] Run `eas build --platform ios --profile development`
+- [ ] Run `eas build --platform ios --profile preview`
 - [ ] Install via TestFlight
 - [ ] Test all features on iOS
 - [ ] Fix platform-specific issues
@@ -78,7 +104,7 @@
 
 ## Phase 5: UI Polish & Features 🔜
 **Duration:** 1-2 weeks  
-**Can parallelize:** With Phases 2-4
+**Can parallelize:** With Phases 3-4
 
 ### UI Polish
 - [ ] Glassmorphism effects (`expo-blur`)
@@ -91,7 +117,7 @@
 - [ ] CSV/PDF export
 - [ ] Location management UI
 - [ ] Hand replayer animations
-- [ ] Pull-to-refresh
+- [x] Pull-to-refresh (working with sync)
 - [ ] Swipe-to-delete
 
 **Deliverable:** ✅ Polished UI matching prototype
@@ -108,7 +134,7 @@
 - [ ] E2E tests for critical flows
 
 ### Manual Testing
-- [ ] Offline functionality verified
+- [x] Offline functionality verified
 - [ ] Performance benchmarks (app launch <3s, 60fps)
 - [ ] Cross-platform consistency
 - [ ] Memory leak checks
@@ -138,12 +164,13 @@
 
 | Week | Focus | Deliverables |
 |------|-------|--------------|
-| 1-2 | Phases 1-3 | Backend live, sync working, IAP configured |
-| 3-4 | Phases 4-5 | iOS build, UI polish |
+| 1-2 | Phases 1-2.5 | ✅ Backend live, sync working, hot-reload configured |
+| 3 | Phase 3 | IAP configured |
+| 4 | Phases 4-5 | iOS build, UI polish |
 | 5 | Phase 6 | Testing & bug fixes |
 | 6 | Phase 7 | Store submission |
 
-**Total to Launch:** 6-8 weeks
+**Total to Launch:** 5-7 weeks (improved with hot-reload workflow!)
 
 ---
 
@@ -152,15 +179,41 @@
 - Backend API (auth, sessions, sync endpoints)
 - Frontend app (all core screens)
 - WatermelonDB offline data layer
-- Android development build
+- Android development build (with EAS Update support)
+- **EAS Update configured** - instant code updates
+- **In-app backend configuration** - no rebuilds for URL changes
+- **Hot-reload development workflow** - 30-second updates
 - RevenueCat SDK integration
 - Basic test suites (11/11 passing)
 
 ---
 
+## Development Workflow (NEW!)
+
+### Push Code Updates (30 seconds)
+```bash
+cd frontend
+npx eas-cli update --branch preview --message "Your changes"
+# App auto-updates on next launch!
+```
+
+### Change Backend URL (2 taps)
+1. Tap ⚙️ gear icon
+2. Select backend
+3. Restart app
+
+### When to Rebuild
+- ❌ Code changes → Use `eas update`
+- ❌ UI changes → Use `eas update`
+- ❌ API URL changes → Use gear icon
+- ✅ New native packages → Use `eas build`
+
+---
+
 ## Documentation
 
-For detailed technical info, see:
-- **Task Tracker:** `.gemini/antigravity/brain/[conversation-id]/task.md`
-- **Implementation Plan:** `.gemini/antigravity/brain/[conversation-id]/implementation_plan.md`
-- **Project Status:** `.gemini/antigravity/brain/[conversation-id]/walkthrough.md`
+**For detailed guides, see:**
+- **Implementation Plan:** [implementation-plan.md](file:///c:/Users/USER/Desktop/Turn-Pro-Poker/implementation-plan.md)
+- **EAS Update Guide:** [eas_update_guide.md](file:///C:/Users/USER/.gemini/antigravity/brain/15fa22a1-7534-4908-bf28-23def5852d9c/eas_update_guide.md)
+- **Hot-Reload Workflow:** [instant_config_workflow.md](file:///C:/Users/USER/.gemini/antigravity/brain/15fa22a1-7534-4908-bf28-23def5852d9c/instant_config_workflow.md)
+- **Local Dev Setup:** [local_dev_setup.md](file:///C:/Users/USER/.gemini/antigravity/brain/15fa22a1-7534-4908-bf28-23def5852d9c/local_dev_setup.md)

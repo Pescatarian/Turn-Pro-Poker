@@ -8,6 +8,12 @@
     "scheme": "frontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/eaf449ef-8273-4ba4-b887-578c29218ca7"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.turnpropoker.app"

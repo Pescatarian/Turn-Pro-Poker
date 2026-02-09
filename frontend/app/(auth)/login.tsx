@@ -3,14 +3,21 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityInd
 import { Link, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import { ApiSettingsModal } from '../../components/ApiSettingsModal';
+import { useApiConfig } from '../../contexts/ApiConfigContext';
 import qs from 'qs'; // Ensure you have qs or use URLSearchParams if compatible with Expo's environment
+
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
     const { signIn } = useAuth();
+    const { apiBaseUrl } = useApiConfig();
     const router = useRouter();
+
+
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -34,8 +41,24 @@ export default function Login() {
             await signIn(access_token);
             // AuthContext will handle redirect
         } catch (error: any) {
-            console.log(error);
-            Alert.alert('Login Failed', error.response?.data?.detail || 'An error occurred');
+            console.error('❌ Login Error Details:');
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
+            console.error('Response status:', error.response?.status);
+            console.error('Response data:', JSON.stringify(error.response?.data));
+            console.error('Request URL:', error.config?.baseURL + error.config?.url);
+
+            let errorMessage = 'An error occurred';
+
+            if (error.code === 'ERR_NETWORK' || error.message?.includes('Network')) {
+                errorMessage = `Cannot connect to backend server. Check your internet connection or WiFi.\n\nTried: ${error.config?.baseURL || 'Unknown URL'}`;
+            } else if (error.response?.status === 401) {
+                errorMessage = error.response?.data?.detail || 'Invalid email or password';
+            } else if (error.response?.data?.detail) {
+                errorMessage = error.response.data.detail;
+            }
+
+            Alert.alert('Login Failed', errorMessage);
         } finally {
             setLoading(false);
         }
@@ -43,8 +66,19 @@ export default function Login() {
 
     return (
         <View style={styles.container}>
+            {/* Settings Button (top-right corner) */}
+            <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={() => setShowSettings(true)}
+            >
+                <Text style={styles.settingsIcon}>⚙️</Text>
+            </TouchableOpacity>
+
             <Text style={styles.title}>Turn Pro Poker</Text>
             <Text style={styles.subtitle}>Sign In</Text>
+
+            {/* Show current backend URL */}
+            <Text style={styles.backendUrl}>Backend: {apiBaseUrl}</Text>
 
             <View style={styles.inputContainer}>
                 <TextInput
@@ -82,6 +116,12 @@ export default function Login() {
                     </TouchableOpacity>
                 </Link>
             </View>
+
+            {/* API Settings Modal */}
+            <ApiSettingsModal
+                visible={showSettings}
+                onClose={() => setShowSettings(false)}
+            />
         </View>
     );
 }
@@ -92,6 +132,16 @@ const styles = StyleSheet.create({
         backgroundColor: '#1a1a2e',
         justifyContent: 'center',
         padding: 20,
+    },
+    settingsButton: {
+        position: 'absolute',
+        top: 50,
+        right: 20,
+        zIndex: 10,
+        padding: 10,
+    },
+    settingsIcon: {
+        fontSize: 28,
     },
     title: {
         fontSize: 32,
@@ -104,7 +154,14 @@ const styles = StyleSheet.create({
         fontSize: 20,
         color: '#888',
         textAlign: 'center',
-        marginBottom: 40,
+        marginBottom: 10,
+    },
+    backendUrl: {
+        fontSize: 11,
+        color: '#4CAF50',
+        textAlign: 'center',
+        marginBottom: 30,
+        fontFamily: 'monospace',
     },
     inputContainer: {
         marginBottom: 20,

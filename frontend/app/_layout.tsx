@@ -4,6 +4,7 @@ import { SubscriptionProvider } from '../contexts/SubscriptionContext';
 import { SessionModalProvider } from '../contexts/SessionModalContext';
 import { PasscodeLockProvider, usePasscodeLock } from '../contexts/PasscodeLockContext';
 import { SyncProvider } from '../contexts/SyncContext';
+import { ApiConfigProvider } from '../contexts/ApiConfigContext';
 import { PasscodeLockScreen } from '../components/auth/PasscodeLockScreen';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
@@ -40,13 +41,15 @@ function PasscodeLockOverlay() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <SubscriptionProvider>
-        <SyncProvider>
-          <AppWithPasscodeLock />
-        </SyncProvider>
-      </SubscriptionProvider>
-    </AuthProvider>
+    <ApiConfigProvider>
+      <AuthProvider>
+        <SubscriptionProvider>
+          <SyncProvider>
+            <AppWithPasscodeLock />
+          </SyncProvider>
+        </SubscriptionProvider>
+      </AuthProvider>
+    </ApiConfigProvider>
   );
 }
 

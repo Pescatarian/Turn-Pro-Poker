@@ -1,7 +1,7 @@
 # Turn Pro Poker - Development Roadmap
 
-> **📍 Current Status:** Phase 2.5 complete! Sync working. Hot-reload workflow configured. EAS Update ready.  
-> **🎯 Next Priority:** Phase 3: Configure RevenueCat → iOS Build → UI Polish
+> **📍 Current Status:** Phase 3 blocked on Play Console. Phase 5 Batch 1 complete (CSV export, session UX, swipe gestures).
+> **🎯 Next Priority:** Phase 5 Batch 2 (reactive bankroll, global privacy mode, stats filters) + Phase 3 purchase testing
 
 ---
 
@@ -70,20 +70,36 @@
 
 ---
 
-## Phase 3: RevenueCat & IAP Setup ⏳ **← START HERE**
+## Phase 3: RevenueCat & IAP Setup ⏳ **IN PROGRESS**
 **Duration:** 3-4 days  
-**Status:** SDK integrated, needs configuration
+**Status:** SDK integrated, configured, paywall UI redesigned
 
-### Tasks
+### RevenueCat Configuration ✅
 - [x] RevenueCat SDK integrated
-- [ ] Create RevenueCat account + configure API keys
-- [ ] Define subscription products (Free/Premium/Pro)
-- [ ] Build paywall screen UI
-- [ ] Implement entitlement checks
-- [ ] Backend webhook handler (`/webhooks/revenuecat`)
-- [ ] Test with sandbox accounts (iOS + Android)
+- [x] Created RevenueCat account + configured API keys
+- [x] Defined subscription products (Semi-Pro Monthly, Pro Monthly)
+- [x] Configured entitlements (Semi-Pro, Pro)
+- [x] Added products to default offering
+- [x] Backend webhook handler (`/webhooks/revenuecat`) with signature verification
+- [x] Configured webhook URL in RevenueCat
+- [ ] Configure iOS app (when ready for iOS build)
 
-**Deliverable:** ✅ Working subscriptions, no errors
+### Paywall UI Redesign ✅
+- [x] Removed 3-second loading delay (instant load)
+- [x] Added Turn Pro logo with transparent background in styled container
+- [x] Moved tier labels (Free, Semi-Pro, Pro) to top of feature table
+- [x] Removed "Current: FREE" badge from header
+- [x] Removed unclear "Choose Your Plan" section title
+- [x] Packages only display when available from RevenueCat
+- [x] Logo container matches features section styling (`#1a1a1a`, rounded corners)
+
+### Testing (Blocked on Play Console)
+- [x] Paywall UI accessible and functional
+- [x] Products visible in RevenueCat dashboard
+- [ ] Real purchase testing (requires Google Play Console — $25 fee)
+- [ ] iOS purchase testing (requires App Store Connect)
+
+**Deliverable:** ✅ RevenueCat configured, paywall redesigned. Purchase testing pending Play Console setup.
 
 ---
 
@@ -114,11 +130,17 @@
 - [ ] Toast notifications
 
 ### Missing Features
-- [ ] CSV/PDF export
-- [ ] Location management UI
+- [x] CSV/PDF export (CSV implemented via share sheet)
+- [x] Location management UI (dropdown from session history)
 - [ ] Hand replayer animations
 - [x] Pull-to-refresh (working with sync)
-- [ ] Swipe-to-delete
+- [x] Swipe-to-delete/edit (gesture-based)
+- [x] Session form UX (native date picker, game type toggle)
+
+### Remaining Features (Batch 2)
+- [ ] Bankroll page: reactive WatermelonDB observables
+- [ ] Global privacy mode (shared context)
+- [ ] Stats filters (time-range, stakes)
 
 **Deliverable:** ✅ Polished UI matching prototype
 
@@ -183,8 +205,25 @@
 - **EAS Update configured** - instant code updates
 - **In-app backend configuration** - no rebuilds for URL changes
 - **Hot-reload development workflow** - 30-second updates
-- RevenueCat SDK integration
+- RevenueCat SDK integration + configuration
+- **Paywall UI redesigned** with Turn Pro logo branding
+- **CSV export** via native share sheet
+- **Session form UX** with native date picker, location dropdown, game type toggle
+- **Swipe gestures** on session cards (delete/edit)
+- **Location management** (auto-populated from session history)
 - Basic test suites (11/11 passing)
+
+---
+
+## Key Assets
+
+- **Turn Pro Logo:** `frontend/assets/images/turn-pro-logo-transparent.png` (transparent PNG)
+- **Paywall Screen:** `frontend/app/paywall.tsx`
+- **Subscription Context:** `frontend/contexts/SubscriptionContext.tsx`
+- **Purchases Service:** `frontend/services/purchases.ts`
+- **CSV Export Service:** `frontend/services/export.ts`
+- **Location Hook:** `frontend/hooks/useLocations.ts`
+- **Sessions Page:** `frontend/app/(tabs)/sessions/index.tsx` (swipe gestures + form UX)
 
 ---
 

@@ -5,13 +5,29 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { usePasscodeLock } from '../../contexts/PasscodeLockContext';
 import { sync } from '../../sync';
+import { exportSessionsCSV } from '../../services/export';
 
 export default function MoreScreen() {
     const { user, signOut } = useAuth();
     const { isPro, restorePurchases } = useSubscription();
     const { hasPasscode } = usePasscodeLock();
     const [isSyncing, setIsSyncing] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     const router = useRouter();
+
+    const handleExport = async () => {
+        setIsExporting(true);
+        try {
+            const result = await exportSessionsCSV();
+            if (!result.success) {
+                Alert.alert('Export', result.error || 'Export failed.');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to export data.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const handleSync = async () => {
         setIsSyncing(true);
@@ -64,19 +80,9 @@ export default function MoreScreen() {
                     <View style={styles.separator} />
 
                     <Text style={styles.label}>Subscription Status</Text>
-                    <View style={styles.subscriptionRow}>
-                        <Text style={[styles.value, isPro ? styles.proText : styles.freeText]}>
-                            {isPro ? 'PRO PLAN' : 'FREE PLAN'}
-                        </Text>
-                        {!isPro && (
-                            <TouchableOpacity
-                                style={styles.upgradeButton}
-                                onPress={() => router.push('/paywall')}
-                            >
-                                <Text style={styles.upgradeText}>Upgrade</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
+                    <Text style={[styles.value, isPro ? styles.proText : styles.freeText]}>
+                        {isPro ? 'PRO PLAN' : 'FREE PLAN'}
+                    </Text>
                 </View>
             </View>
 
@@ -96,6 +102,24 @@ export default function MoreScreen() {
             </View>
 
             <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Premium Features</Text>
+                <TouchableOpacity
+                    style={[styles.button, styles.premiumButton]}
+                    onPress={() => router.push('/paywall')}
+                >
+                    <View style={styles.premiumButtonContent}>
+                        <View>
+                            <Text style={styles.premiumButtonTitle}>💎 Upgrade to Premium</Text>
+                            <Text style={styles.premiumButtonSubtitle}>
+                                Unlock advanced stats, exports, and more
+                            </Text>
+                        </View>
+                        <Text style={styles.premiumArrow}>→</Text>
+                    </View>
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Data Management</Text>
 
                 <TouchableOpacity style={styles.button} onPress={handleSync} disabled={isSyncing}>
@@ -108,9 +132,14 @@ export default function MoreScreen() {
 
                 <TouchableOpacity
                     style={styles.button}
-                    onPress={() => Alert.alert('Export', 'CSV Export coming soon!')}
+                    onPress={handleExport}
+                    disabled={isExporting}
                 >
-                    <Text style={styles.buttonText}>Export Data (CSV)</Text>
+                    {isExporting ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <Text style={styles.buttonText}>Export Data (CSV)</Text>
+                    )}
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -243,5 +272,32 @@ const styles = StyleSheet.create({
     },
     offText: {
         color: '#888',
+    },
+    premiumButton: {
+        backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderWidth: 2,
+        borderColor: '#FFD700',
+    },
+    premiumButtonContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+    },
+    premiumButtonTitle: {
+        color: '#FFD700',
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    premiumButtonSubtitle: {
+        color: '#ddd',
+        fontSize: 13,
+    },
+    premiumArrow: {
+        color: '#FFD700',
+        fontSize: 24,
+        fontWeight: 'bold',
     },
 });

@@ -1,8 +1,8 @@
 # Turn Pro Poker - Implementation Plan
 
-> **Status as of Feb 9, 2026**  
-> Phase 2 complete. Backend deployed to Render, sync working successfully.  
-> **NEW:** Hot-reload workflow and EAS Update configured - instant code updates without rebuilds!
+> **Status as of Feb 10, 2026**  
+> Phase 3 blocked on Play Console. Phase 5 Batch 1 complete (CSV export, session form UX, swipe gestures).  
+> **Next:** Batch 2 (reactive bankroll, privacy mode, stats filters) + purchase testing.
 
 ---
 
@@ -19,14 +19,20 @@
 - **EAS Update configured** - Over-the-air code updates in ~30 seconds
 - **In-app backend configuration** - Change API URL without rebuilds
 - **Hot-reload workflow** - Edit code → push update → app updates instantly
-- Basic tests (11/11 frontend, 5/5 backend passing)
+- **RevenueCat configured** - Products, entitlements, webhook all set
+- **Paywall UI redesigned** - Turn Pro logo, styled container, instant loading
+- **CSV export** via native share sheet (`services/export.ts`)
+- **Session form UX** - native date picker, location dropdown, game type toggle
+- **Swipe gestures** on session cards (delete right, edit left)
+- **Location management** hook (`hooks/useLocations.ts`)
+- Basic tests (6/11 passing — pre-existing failures)
 
-### 🚧 In Progress
-- RevenueCat configuration (Phase 3)
+### ⏳ Blocked
+- Real purchase testing (needs Google Play Console)
 
 ### ⏳ Upcoming
+- Batch 2: Reactive bankroll, global privacy mode, stats filters
 - iOS build
-- UI polish (glassmorphism, privacy mode, export features)
 - Comprehensive testing
 - App Store submission
 
@@ -52,19 +58,19 @@ flowchart LR
 
 ---
 
-## Current Priority: RevenueCat Configuration (Phase 3)
+## Current Priority: Purchase Testing & iOS Build (Phase 3-4)
 
-**Why:** Sync is complete, hot-reload workflow set up, now need to set up in-app purchases
+**RevenueCat ✅ Done:** Account created, SDK configured, products defined, webhook handler ready, paywall UI redesigned.
 
-**Steps:**
-1. Create RevenueCat account
-2. Configure API keys in app
-3. Define subscription products (Free/Premium/Pro)
-4. Build paywall screen UI
-5. Test with sandbox accounts (iOS + Android)
-6. Set up backend webhook handler
+**Next Steps:**
+1. Set up Google Play Developer account ($25)
+2. Upload app to Play Console (internal testing)
+3. Create subscription products in Play Console
+4. Link products to RevenueCat
+5. Test purchases with sandbox accounts
+6. Configure iOS app in RevenueCat
 
-**ETA:** 3-4 days
+**ETA:** 2-3 days once Play Console is set up
 
 ---
 
@@ -97,7 +103,8 @@ npx eas-cli update --branch preview --message "Your changes"
 | Backend Deployment | 2-3 days | ✅ Complete |
 | Server Sync | 3-5 days | ✅ Complete |
 | **Hot-Reload Setup** | **1 day** | ✅ **Complete** |
-| RevenueCat Setup | 3-4 days | ⏳ Next |
+| RevenueCat Setup | 3-4 days | ⏳ Blocked (Play Console) |
+| **Feature Batch 1** | **2 days** | ✅ **Complete** |
 | iOS Build | 2-3 days | 🔜 Soon |
 | UI Polish | 1-2 weeks | 🔜 Soon |
 | Testing | 1 week | 🔜 Soon |
@@ -151,7 +158,9 @@ cd frontend && npm test -- --coverage
 - [x] Server sync working with Render
 - [x] **EAS Update working** (code updates in ~30 sec)
 - [x] **In-app backend switching** works
-- [ ] RevenueCat purchases (pending config)
+- [x] **RevenueCat SDK configured** (products, entitlements, webhook)
+- [x] **Paywall UI redesigned** (logo, instant load, styled containers)
+- [ ] Real purchases (pending Play Console)
 - [ ] iOS build (pending)
 
 ---
@@ -170,7 +179,12 @@ cd frontend && npm test -- --coverage
 - `frontend/contexts/ApiConfigContext.tsx` - Backend URL management ✅
 - `frontend/components/ApiSettingsModal.tsx` - In-app settings ✅
 - `frontend/services/purchases.ts` - RevenueCat wrapper ✅
-- `frontend/app/(tabs)/` - Main screens ✅
+- `frontend/contexts/SubscriptionContext.tsx` - Subscription state ✅
+- `frontend/app/paywall.tsx` - Paywall UI with branding ✅
+- `frontend/services/export.ts` - CSV export service ✅
+- `frontend/hooks/useLocations.ts` - Location management hook ✅
+- `frontend/assets/images/turn-pro-logo-transparent.png` - Logo (transparent PNG)
+- `frontend/app/(tabs)/` - Main screens ✅ (sessions page with swipe gestures)
 
 **Configuration:**
 - `frontend/eas.json` - EAS Build and Update configuration ✅
@@ -181,9 +195,9 @@ cd frontend && npm test -- --coverage
 
 ## Next 3 Steps
 
-1. **Configure RevenueCat** (this week)
-2. **Test subscriptions** (next week)  
-3. **Build iOS version** (next week)
+1. **Batch 2 features** — reactive bankroll, global privacy mode, stats filters
+2. **Set up Google Play Console** ($25 fee) for purchase testing
+3. **iOS build** — `eas build --platform ios`
 
 **For detailed documentation, see:**
 - [Next Phase.md](file:///c:/Users/USER/Desktop/Turn-Pro-Poker/Next%20Phase.md)

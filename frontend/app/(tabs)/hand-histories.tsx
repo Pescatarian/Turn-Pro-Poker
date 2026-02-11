@@ -1,274 +1,343 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Dimensions } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { ScreenWrapper } from '../../components/ui/ScreenWrapper';
-import { GlassCard } from '../../components/ui/GlassCard';
-import { PokerTable } from '../../components/replayer/PokerTable';
-import { COLORS, GRADIENTS } from '../../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useReplayer, HandData, Player, GameAction } from '../../hooks/useReplayer';
-import { withObservables } from '@nozbe/watermelondb/react';
-import { database } from '../../model';
-import Hand from '../../model/Hand';
-import { Q } from '@nozbe/watermelondb';
+import { PokerTable, SeatData } from '../../components/replayer/PokerTable';
+import { SeatModal } from '../../components/replayer/SeatModal';
+import { ActionButtons, ActionType } from '../../components/replayer/ActionButtons';
+import { ActionHistory, ActionRecord } from '../../components/replayer/ActionHistory';
+import { PlaybackControls } from '../../components/replayer/PlaybackControls';
+import { COLORS } from '../../constants/theme';
 
-const { width } = Dimensions.get('window');
+const POSITIONS = ['BTN', 'SB', 'BB', 'UTG', 'EP', 'MP', 'LJ', 'HJ', 'CO'];
 
-// Helper to transform WatermelonDB Hand model to Replayer HandData
-const transformHandToReplayerData = (hand: Hand): HandData => {
-    // Default 6-max table
-    const players: Player[] = Array.from({ length: 9 }, (_, i) => ({
-        id: i + 1,
-        name: i === 0 ? 'Hero' : `P${i + 1}`,
-        stack: 100, // Default stack
-        isActive: false,
+function makeDefaultSeats(): SeatData[] {
+    return POSITIONS.map((pos, i) => ({
+        position: pos,
+        stack: 1000,
+        cards: [],
+        isHero: false,
         isDealer: false,
+        isFolded: false,
+        isActive: true,
     }));
+}
 
-    // Activate Hero
-    players[0].isActive = true;
-    players[0].cards = hand.cards || [];
+export default function HandHistoriesScreen() {
+    // Seats state
+    const [seats, setSeats] = useState<SeatData[]>(makeDefaultSeats());
+    const [communityCards, setCommunityCards] = useState<string[]>(['', '', '', '', '']);
+    const [pot, setPot] = useState(5);
+    const [stakes, setStakes] = useState('$5/$10');
 
-    // Parse actions to activate other players
-    const actions: GameAction[] = hand.actions || [];
-    const activePlayerIds = new Set<number>();
-    activePlayerIds.add(1); // Hero always active
+    // Seat Modal state
+    const [seatModalVisible, setSeatModalVisible] = useState(false);
+    const [selectedSeatIndex, setSelectedSeatIndex] = useState<number | null>(null);
+    const [isBoardMode, setIsBoardMode] = useState(false);
+    const [currentBoardSlot, setCurrentBoardSlot] = useState<number | null>(null);
 
-    actions.forEach(action => {
-        if (action.playerId) {
-            activePlayerIds.add(action.playerId);
-            if (players[action.playerId - 1]) {
-                players[action.playerId - 1].isActive = true;
+    // Used cards tracking (card string -> owner label)
+    const [usedCards, setUsedCards] = useState<Record<string, string>>({});
+
+    // Tabs
+    const [activeTab, setActiveTab] = useState<'history' | 'notes'>('history');
+    const [showCards, setShowCards] = useState(false);
+
+    // Action history
+    const [actions, setActions] = useState<ActionRecord[]>([]);
+    const [notes, setNotes] = useState('');
+
+    // Active seat for actions
+    const [activeSeatIndex, setActiveSeatIndex] = useState(0);
+
+    // --- Handlers ---
+
+    const handlePressSeat = useCallback((seatIndex: number) => {
+        setSelectedSeatIndex(seatIndex);
+        setIsBoardMode(false);
+        setCurrentBoardSlot(null);
+        setSeatModalVisible(true);
+    }, []);
+
+    const handlePressBoardSlot = useCallback((slotIndex: number) => {
+        setCurrentBoardSlot(slotIndex);
+        setIsBoardMode(true);
+        setSelectedSeatIndex(null);
+        setSeatModalVisible(true);
+    }, []);
+
+    const handleSeatModalClose = useCallback((newStack?: number) => {
+        if (selectedSeatIndex !== null && newStack !== undefined) {
+            setSeats(prev => {
+                const next = [...prev];
+                next[selectedSeatIndex] = { ...next[selectedSeatIndex], stack: newStack };
+                return next;
+            });
+        }
+        setSeatModalVisible(false);
+        setSelectedSeatIndex(null);
+        setCurrentBoardSlot(null);
+        setIsBoardMode(false);
+    }, [selectedSeatIndex]);
+
+    const handleCardAssigned = useCallback((card: string) => {
+        if (isBoardMode && currentBoardSlot !== null) {
+            // Board card mode
+            setCommunityCards(prev => {
+                const next = [...prev];
+                next[currentBoardSlot] = card;
+                return next;
+            });
+            setUsedCards(prev => ({ ...prev, [card]: 'Board' }));
+
+            // Auto-advance to next empty slot
+            const nextEmpty = communityCards.findIndex((c, i) => i > currentBoardSlot && !c);
+            if (nextEmpty !== -1) {
+                setCurrentBoardSlot(nextEmpty);
+            } else {
+                // All slots filled — close modal
+                setSeatModalVisible(false);
+                setCurrentBoardSlot(null);
+                setIsBoardMode(false);
+            }
+        } else if (selectedSeatIndex !== null) {
+            // Seat hole card mode
+            setSeats(prev => {
+                const next = [...prev];
+                const seat = next[selectedSeatIndex];
+                const existingCards = [...seat.cards];
+                if (existingCards.length < 2) {
+                    existingCards.push(card);
+                }
+                next[selectedSeatIndex] = { ...seat, cards: existingCards };
+                return next;
+            });
+            setUsedCards(prev => ({ ...prev, [card]: seats[selectedSeatIndex].position }));
+        }
+    }, [isBoardMode, currentBoardSlot, selectedSeatIndex, communityCards, seats]);
+
+    const handleSitHere = useCallback(() => {
+        if (selectedSeatIndex === null) return;
+        setSeats(prev => prev.map((s, i) => ({
+            ...s,
+            isHero: i === selectedSeatIndex,
+        })));
+    }, [selectedSeatIndex]);
+
+    const handleAction = useCallback((actionType: ActionType) => {
+        const seat = seats[activeSeatIndex];
+        const record: ActionRecord = {
+            id: `${Date.now()}-${Math.random()}`,
+            player: seat.position,
+            action: actionType,
+        };
+
+        setActions(prev => [...prev, record]);
+
+        // If fold, mark seat as folded
+        if (actionType === 'fold') {
+            setSeats(prev => {
+                const next = [...prev];
+                next[activeSeatIndex] = { ...next[activeSeatIndex], isFolded: true };
+                return next;
+            });
+        }
+
+        // Advance to next active (non-folded) seat
+        let nextIndex = (activeSeatIndex + 1) % 9;
+        let attempts = 0;
+        while (seats[nextIndex].isFolded && attempts < 9) {
+            nextIndex = (nextIndex + 1) % 9;
+            attempts++;
+        }
+        setActiveSeatIndex(nextIndex);
+    }, [activeSeatIndex, seats]);
+
+    const handleShare = useCallback(() => {
+        Alert.alert('Share', 'Hand sharing coming soon');
+    }, []);
+
+    const handlePlay = useCallback(() => {
+        Alert.alert('Play', 'Replay animation coming soon');
+    }, []);
+
+    const handlePrev = useCallback(() => {
+        if (actions.length === 0) return;
+        // Remove last action
+        const lastAction = actions[actions.length - 1];
+        setActions(prev => prev.slice(0, -1));
+
+        // Un-fold if it was a fold
+        if (lastAction.action === 'fold') {
+            const seatIdx = POSITIONS.indexOf(lastAction.player);
+            if (seatIdx !== -1) {
+                setSeats(prev => {
+                    const next = [...prev];
+                    next[seatIdx] = { ...next[seatIdx], isFolded: false };
+                    return next;
+                });
             }
         }
-    });
+    }, [actions]);
 
-    return {
-        id: hand.id,
-        stakes: '', // Needs session data join, skipping for now
-        date: new Date(hand.createdAt).toISOString(),
-        winners: [],
-        communityCards: hand.communityCards || [],
-        players,
-        actions,
-    };
-};
+    const handleNext = useCallback(() => {
+        // Same as advancing seat
+        let nextIndex = (activeSeatIndex + 1) % 9;
+        let attempts = 0;
+        while (seats[nextIndex].isFolded && attempts < 9) {
+            nextIndex = (nextIndex + 1) % 9;
+            attempts++;
+        }
+        setActiveSeatIndex(nextIndex);
+    }, [activeSeatIndex, seats]);
 
-const HandItem = ({ hand, onPress }: { hand: Hand, onPress: (hand: Hand) => void }) => {
-    const date = new Date(hand.createdAt).toLocaleDateString();
+    const modalPosition = isBoardMode
+        ? 'Board'
+        : selectedSeatIndex !== null
+            ? seats[selectedSeatIndex].position
+            : '--';
 
-    // Quick summary logic
-    const heroCards = hand.cards && hand.cards.length === 2
-        ? `${hand.cards[0].rank}${hand.cards[0].suit} ${hand.cards[1].rank}${hand.cards[1].suit}`
-        : 'No Cards';
-
-    return (
-        <TouchableOpacity onPress={() => onPress(hand)}>
-            <GlassCard style={styles.handCard} intensity={20}>
-                <View style={styles.handHeader}>
-                    <Text style={styles.handDate}>{date}</Text>
-                    <Text style={styles.potSize}>Pot: ${hand.pot}</Text>
-                </View>
-                <View style={styles.handBody}>
-                    <Text style={styles.heroCards}>{heroCards}</Text>
-                    {hand.notes ? <Text style={styles.note} numberOfLines={1}>{hand.notes}</Text> : null}
-                </View>
-            </GlassCard>
-        </TouchableOpacity>
-    );
-};
-
-
-const HandHistoriesScreen = ({ hands }: { hands: Hand[] }) => {
-    const [replayerVisible, setReplayerVisible] = useState(false);
-    const [selectedHand, setSelectedHand] = useState<HandData | null>(null);
-
-    // Initialize Replayer Hook
-    const { gameState, controls } = useReplayer(selectedHand);
-
-    const handlePressHand = (hand: Hand) => {
-        const handData = transformHandToReplayerData(hand);
-        setSelectedHand(handData);
-        setReplayerVisible(true);
-    };
+    const modalStack = selectedSeatIndex !== null ? seats[selectedSeatIndex].stack : 1000;
 
     return (
-        <ScreenWrapper>
-            <View style={styles.container}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>Hand Histories</Text>
-                    {/* Add Hand Button - Placeholder or navigate to manual entry */}
-                    {/* For now, just a visual indicator or maybe hidden */}
+        <ScreenWrapper hideHeader>
+            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+                {/* Poker Table */}
+                <View style={styles.tableContainer}>
+                    <PokerTable
+                        seats={seats}
+                        communityCards={communityCards}
+                        pot={pot}
+                        stakes={stakes}
+                        onPressSeat={handlePressSeat}
+                        onPressBoardSlot={handlePressBoardSlot}
+                    />
                 </View>
 
-                <ScrollView contentContainerStyle={styles.listContent}>
-                    {hands.length === 0 ? (
-                        <View style={styles.emptyState}>
-                            <GlassCard style={styles.emptyCard} intensity={10}>
-                                <Ionicons name="albums-outline" size={48} color={COLORS.muted} style={{ marginBottom: 12, opacity: 0.5 }} />
-                                <Text style={styles.emptyTitle}>No hands recorded</Text>
-                            </GlassCard>
-                        </View>
-                    ) : (
-                        hands.map((item: Hand) => (
-                            <HandItem key={item.id} hand={item} onPress={handlePressHand} />
-                        ))
-                    )}
-                </ScrollView>
+                {/* Tabs */}
+                <View style={styles.tabs}>
+                    <TouchableOpacity
+                        style={[styles.tab, activeTab === 'history' && styles.tabActive]}
+                        onPress={() => setActiveTab('history')}
+                    >
+                        <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>History</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tab, activeTab === 'notes' && styles.tabActive]}
+                        onPress={() => setActiveTab('notes')}
+                    >
+                        <Text style={[styles.tabText, activeTab === 'notes' && styles.tabTextActive]}>Notes</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tab, styles.showCardsTab]}
+                        onPress={() => setShowCards(!showCards)}
+                    >
+                        <Text style={styles.showCardsText}>🂠 {showCards ? 'Hide' : 'Show'} cards</Text>
+                    </TouchableOpacity>
+                </View>
 
-                {/* Replayer Modal */}
-                <Modal
-                    visible={replayerVisible}
-                    animationType="slide"
-                    presentationStyle="fullScreen"
-                    onRequestClose={() => setReplayerVisible(false)}
-                >
-                    <ScreenWrapper style={{ paddingTop: 0 }}>
-                        <View style={styles.replayerHeader}>
-                            <TouchableOpacity onPress={() => setReplayerVisible(false)} style={styles.backBtn}>
-                                <Ionicons name="arrow-back" size={24} color="#fff" />
-                            </TouchableOpacity>
-                            <Text style={styles.replayerTitle}>Replay</Text>
-                            <View style={{ width: 40 }} />
-                        </View>
+                {/* Action History or Notes */}
+                {activeTab === 'history' ? (
+                    <ActionHistory actions={actions} />
+                ) : (
+                    <View style={styles.notesPanel}>
+                        <TextInput
+                            style={styles.notesInput}
+                            placeholder="Add notes about this hand..."
+                            placeholderTextColor="#666"
+                            value={notes}
+                            onChangeText={setNotes}
+                            multiline
+                        />
+                    </View>
+                )}
 
-                        <View style={styles.replayerBody}>
-                            <PokerTable
-                                players={gameState.players}
-                                communityCards={gameState.board as any}
-                                pot={gameState.pot}
-                            />
-                        </View>
+                {/* Action Buttons */}
+                <ActionButtons onAction={handleAction} />
 
-                        <GlassCard style={styles.controls} intensity={40}>
-                            <View style={styles.controlRow}>
-                                <TouchableOpacity onPress={controls.prevAction} disabled={!controls.canPrev}>
-                                    <Ionicons name="play-skip-back" size={24} color={controls.canPrev ? COLORS.text : COLORS.muted} />
-                                </TouchableOpacity>
+                {/* Playback Controls */}
+                <PlaybackControls
+                    onShare={handleShare}
+                    onPlay={handlePlay}
+                    onPrev={handlePrev}
+                    onNext={handleNext}
+                />
 
-                                <TouchableOpacity onPress={controls.togglePlay}>
-                                    <Ionicons name={controls.isPlaying ? "pause-circle" : "play-circle"} size={48} color={COLORS.accent} />
-                                </TouchableOpacity>
+            </ScrollView>
 
-                                <TouchableOpacity onPress={controls.nextAction} disabled={!controls.canNext}>
-                                    <Ionicons name="play-skip-forward" size={24} color={controls.canNext ? COLORS.text : COLORS.muted} />
-                                </TouchableOpacity>
-                            </View>
-                            <Text style={styles.streetLabel}>{gameState.currentStreet.toUpperCase()}</Text>
-                        </GlassCard>
-                    </ScreenWrapper>
-                </Modal>
-            </View>
+            {/* Seat Modal */}
+            <SeatModal
+                visible={seatModalVisible}
+                position={modalPosition}
+                stack={modalStack}
+                isBoardMode={isBoardMode}
+                usedCards={usedCards}
+                onClose={handleSeatModalClose}
+                onCardAssigned={handleCardAssigned}
+                onSitHere={handleSitHere}
+            />
         </ScreenWrapper>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
+        paddingTop: 12,
     },
-    header: {
-        marginBottom: 20,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+    tableContainer: {
+        paddingHorizontal: 12,
         alignItems: 'center',
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: COLORS.text,
-    },
-    listContent: {
-        paddingBottom: 80,
-    },
-    handCard: {
-        marginBottom: 10,
-        padding: 15,
-        borderRadius: 12,
-    },
-    handHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 8,
-    },
-    handDate: {
-        color: COLORS.muted,
-        fontSize: 12,
-    },
-    potSize: {
-        color: COLORS.accent,
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
-    handBody: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    heroCards: {
-        color: COLORS.text,
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    note: {
-        color: COLORS.muted,
-        fontSize: 12,
-        maxWidth: '60%',
-    },
-    emptyState: {
-        marginTop: 40,
-    },
-    emptyCard: {
-        alignItems: 'center',
-        padding: 40,
-    },
-    emptyTitle: {
-        color: COLORS.text,
-        fontWeight: 'bold',
-        fontSize: 16,
-        marginBottom: 4,
-    },
-    replayerHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 16,
-        backgroundColor: 'rgba(0,0,0,0.2)',
-    },
-    replayerTitle: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    backBtn: {
-        padding: 8,
-    },
-    replayerBody: {
-        flex: 1,
         justifyContent: 'center',
     },
-    controls: {
-        margin: 16,
-        padding: 20,
-        alignItems: 'center',
-    },
-    controlRow: {
+
+    // Tabs
+    tabs: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: 32,
-        marginBottom: 10,
+        gap: 8,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.05)',
     },
-    streetLabel: {
+    tab: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 2,
+        borderBottomColor: 'transparent',
+    },
+    tabActive: {
+        borderBottomColor: COLORS.accent,
+    },
+    tabText: {
         color: COLORS.muted,
-        fontSize: 12,
-        fontWeight: 'bold',
-        letterSpacing: 1,
-    }
+        fontSize: 14,
+    },
+    tabTextActive: {
+        color: '#fff',
+    },
+    showCardsTab: {
+        marginLeft: 'auto',
+    },
+    showCardsText: {
+        color: COLORS.muted,
+        fontSize: 13,
+    },
+
+    // Notes
+    notesPanel: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+    },
+    notesInput: {
+        width: '100%',
+        height: 80,
+        backgroundColor: COLORS.bg,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        color: '#fff',
+        fontSize: 14,
+        textAlignVertical: 'top',
+    },
 });
-
-const enhance = withObservables([], () => ({
-    hands: database.collections.get('hands').query(Q.sortBy('created_at', Q.desc)),
-}));
-
-export default enhance(HandHistoriesScreen);

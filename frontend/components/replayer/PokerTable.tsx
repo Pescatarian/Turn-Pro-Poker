@@ -1,126 +1,161 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS } from '../../constants/theme';
 import { Card } from './Card';
-import { GlassCard } from '../ui/GlassCard';
 
 /*
-  Seat Layout Strategy (Clockwise from Bottom Center)
-  We use percentages for positioning to be responsive-ish.
-  Hero is usually Bottom Center (Seat 1).
+  Seat positions matching index.html exactly:
+  .seat-1{bottom:0%;left:50%;transform:translateX(-50%)}         BTN
+  .seat-2{bottom:18%;left:5%}                                     SB
+  .seat-3{top:50%;left:0%;transform:translateY(-50%)}             BB
+  .seat-4{top:20%;left:3%}                                        UTG
+  .seat-5{top:0%;left:25%;transform:translateX(-50%)}             EP
+  .seat-6{top:0%;right:25%;transform:translateX(50%)}             MP
+  .seat-7{top:20%;right:3%}                                       LJ
+  .seat-8{top:50%;right:0%;transform:translateY(-50%)}            HJ
+  .seat-9{bottom:18%;right:5%}                                    CO
 */
-const SEAT_POSITIONS = [
-    { id: 1, bottom: '0%', left: '50%', transform: [{ translateX: -35 }, { translateY: 0 }] }, // Hero
-    { id: 2, bottom: '18%', left: '2%', transform: [{ translateX: 0 }] },
-    { id: 3, top: '50%', left: '-2%', transform: [{ translateY: -30 }] },
-    { id: 4, top: '15%', left: '2%', transform: [{ translateX: 0 }] },
-    { id: 5, top: '-5%', left: '25%', transform: [{ translateX: 0 }] }, // Top Left
-    { id: 6, top: '-5%', right: '25%', transform: [{ translateX: 0 }] }, // Top Right
-    { id: 7, top: '15%', right: '2%', transform: [{ translateX: 0 }] },
-    { id: 8, top: '50%', right: '-2%', transform: [{ translateY: -30 }] },
-    { id: 9, bottom: '18%', right: '2%', transform: [{ translateX: 0 }] },
+
+const POSITIONS = ['BTN', 'SB', 'BB', 'UTG', 'EP', 'MP', 'LJ', 'HJ', 'CO'];
+
+const SEAT_LAYOUT: { id: number; style: any }[] = [
+    { id: 1, style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },
+    { id: 2, style: { bottom: '18%', left: '2%' } },
+    { id: 3, style: { top: '48%', left: '-2%', transform: [{ translateY: -30 }] } },
+    { id: 4, style: { top: '18%', left: '2%' } },
+    { id: 5, style: { top: '-2%', left: '22%', transform: [{ translateX: -20 }] } },
+    { id: 6, style: { top: '-2%', right: '22%', transform: [{ translateX: 20 }] } },
+    { id: 7, style: { top: '18%', right: '2%' } },
+    { id: 8, style: { top: '48%', right: '-2%', transform: [{ translateY: -30 }] } },
+    { id: 9, style: { bottom: '18%', right: '2%' } },
 ];
 
-interface Player {
-    id: number;
-    name: string;
+export interface SeatData {
+    position: string;
     stack: number;
-    cards?: { rank: string; suit: 'h' | 'd' | 'c' | 's' }[];
-    isActive?: boolean;
-    isDealer?: boolean;
-    action?: string; // 'check', 'bet', 'fold'
+    cards: string[]; // e.g. ['Ah', 'Kd']
+    isHero: boolean;
+    isDealer: boolean;
+    isFolded: boolean;
+    isActive: boolean;
 }
 
 interface PokerTableProps {
-    players: Player[];
-    communityCards: { rank: string; suit: 'h' | 'd' | 'c' | 's' }[];
+    seats: SeatData[];
+    communityCards: string[]; // e.g. ['Ah', '2c', 'Td', '', '']
     pot: number;
-    heroSeatId?: number;
+    stakes: string;
+    onPressSeat: (seatIndex: number) => void;
+    onPressBoardSlot: (slotIndex: number) => void;
 }
 
-const ACTION_BADGE_STYLES: Record<string, { backgroundColor: string }> = {
-    fold: { backgroundColor: '#4b5563' },
-    check: { backgroundColor: COLORS.accent },
-    call: { backgroundColor: COLORS.accent },
-    bet: { backgroundColor: COLORS.chartGold },
-    raise: { backgroundColor: COLORS.danger },
-};
+function parseCard(c: string): { rank: string; suit: 'h' | 'd' | 'c' | 's' } | null {
+    if (!c || c.length < 2) return null;
+    return { rank: c.slice(0, -1), suit: c.slice(-1) as any };
+}
 
-const getActionBadgeStyle = (action: string) => ACTION_BADGE_STYLES[action] || {};
-
-export const PokerTable: React.FC<PokerTableProps> = ({ players, communityCards, pot, heroSeatId = 1 }) => {
+export const PokerTable: React.FC<PokerTableProps> = ({
+    seats,
+    communityCards,
+    pot,
+    stakes,
+    onPressSeat,
+    onPressBoardSlot,
+}) => {
     return (
         <View style={styles.container}>
-            {/* The Table Felt */}
-            <View style={styles.tableWrapper}>
+            {/* Table Felt */}
+            <View style={styles.tableOuter}>
                 <LinearGradient
                     colors={['#1a472a', '#0d2818']}
                     style={styles.tableFelt}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+                    start={{ x: 0.3, y: 0 }}
+                    end={{ x: 0.7, y: 1 }}
                 >
-                    {/* Center Info */}
-                    <View style={styles.centerInfo}>
-                        <Text style={styles.stakesText}>$5 / $10</Text>
+                    {/* Stakes */}
+                    <Text style={styles.stakesText}>{stakes}</Text>
 
-                        {/* Community Cards */}
-                        <View style={styles.communityCards}>
-                            {[0, 1, 2, 3, 4].map((i) => (
-                                <Card
+                    {/* Community Cards */}
+                    <View style={styles.communityCards}>
+                        {[0, 1, 2, 3, 4].map(i => {
+                            const parsed = parseCard(communityCards[i]);
+                            return (
+                                <TouchableOpacity
                                     key={`board-${i}`}
-                                    {...(communityCards[i] ? { ...communityCards[i], hidden: false } : { hidden: false })}
-                                    style={!communityCards[i] ? styles.emptyCard : undefined}
-                                />
-                            ))}
-                        </View>
+                                    onPress={() => onPressBoardSlot(i)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Card
+                                        rank={parsed?.rank}
+                                        suit={parsed?.suit}
+                                        size="normal"
+                                    />
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
 
-                        {/* Pot */}
-                        <View style={styles.potContainer}>
-                            <Text style={styles.potLabel}>Pot: </Text>
-                            <Text style={styles.potValue}>{pot}</Text>
-                        </View>
+                    {/* Pot */}
+                    <View style={styles.potRow}>
+                        <Text style={styles.potChips}>●●●</Text>
+                        <Text style={styles.potText}>{pot}</Text>
                     </View>
                 </LinearGradient>
             </View>
 
-            {/* Players Area (Overlays the table) */}
-            <View style={StyleSheet.absoluteFill}>
-                {SEAT_POSITIONS.map((pos, index) => {
-                    const player = players.find(p => p.id === pos.id);
-                    const isHero = pos.id === heroSeatId;
+            {/* Seats */}
+            <View style={styles.seatsOverlay}>
+                {SEAT_LAYOUT.map((layout, i) => {
+                    const seat = seats[i];
+                    if (!seat) return null;
 
-                    if (!player) {
-                        // Empty Seat
-                        return (
-                            <View key={pos.id} style={[styles.seatContainer, pos as any]}>
-                                <View style={styles.emptySeat}>
-                                    <Text style={styles.emptySeatText}>+</Text>
-                                </View>
-                            </View>
-                        );
-                    }
+                    const card1 = parseCard(seat.cards[0]);
+                    const card2 = parseCard(seat.cards[1]);
+                    const hasCards = seat.cards.length > 0 && seat.cards.some(c => c);
 
                     return (
-                        <View key={pos.id} style={[styles.seatContainer, pos as any]}>
-                            {/* Cards */}
-                            <View style={[styles.playerCards, isHero && styles.heroCards]}>
-                                <Card hidden={!isHero} rank={player.cards?.[0]?.rank} suit={player.cards?.[0]?.suit as any} />
-                                <Card hidden={!isHero} rank={player.cards?.[1]?.rank} suit={player.cards?.[1]?.suit as any} />
+                        <TouchableOpacity
+                            key={layout.id}
+                            style={[styles.seat, layout.style, seat.isFolded && styles.seatFolded]}
+                            onPress={() => onPressSeat(i)}
+                            activeOpacity={0.7}
+                        >
+                            {/* Hole Cards */}
+                            <View style={styles.seatCards}>
+                                {hasCards ? (
+                                    <>
+                                        <Card rank={card1?.rank} suit={card1?.suit} size="small" revealed />
+                                        <Card rank={card2?.rank} suit={card2?.suit} size="small" revealed />
+                                    </>
+                                ) : (
+                                    <>
+                                        <Card hidden size="small" />
+                                        <Card hidden size="small" />
+                                    </>
+                                )}
                             </View>
 
-                            {/* Player Info Box */}
-                            <GlassCard style={[styles.playerInfo, isHero && styles.heroInfo, player.action === 'fold' && styles.foldedPlayer]} intensity={40}>
-                                <Text style={styles.playerName} numberOfLines={1}>{player.name}</Text>
-                                <Text style={styles.playerStack}>{player.stack}</Text>
-                                {player.action && (
-                                    <View style={[styles.actionBadge, getActionBadgeStyle(player.action)]}>
-                                        <Text style={styles.actionText}>{player.action}</Text>
-                                    </View>
-                                )}
-                                {player.isDealer && <View style={styles.dealerBtn}><Text style={styles.dealerText}>D</Text></View>}
-                            </GlassCard>
-                        </View>
+                            {/* Seat Info Box */}
+                            <View style={[
+                                styles.seatInfo,
+                                seat.isHero && styles.seatInfoHero,
+                                seat.isActive && styles.seatInfoActive,
+                            ]}>
+                                <Text style={[styles.posLabel, seat.isHero && styles.posLabelHero]}>
+                                    {seat.position}
+                                </Text>
+                                <Text style={styles.stackText}>
+                                    {seat.stack.toLocaleString()}
+                                </Text>
+                            </View>
+
+                            {/* Dealer Button */}
+                            {seat.isDealer && (
+                                <View style={styles.dealerBtn}>
+                                    <Text style={styles.dealerText}>D</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
                     );
                 })}
             </View>
@@ -131,161 +166,137 @@ export const PokerTable: React.FC<PokerTableProps> = ({ players, communityCards,
 const styles = StyleSheet.create({
     container: {
         width: '100%',
-        aspectRatio: 0.8, // Taller than wide for mobile vertical
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginVertical: 20,
+        aspectRatio: 1 / 1.4,
+        maxWidth: 400,
+        alignSelf: 'center',
     },
-    tableWrapper: {
-        width: '85%',
-        aspectRatio: 0.7,
-        borderRadius: 100,
+    tableOuter: {
+        position: 'absolute',
+        top: '10%',
+        left: '15%',
+        width: '70%',
+        height: '80%',
+        borderRadius: 120,
+        backgroundColor: '#1a1a1a',
         padding: 8,
-        backgroundColor: '#111', // Outer Rim
-        elevation: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.8,
-        shadowRadius: 20,
+        // Outer shadow matching index.html: box-shadow: 0 0 0 8px #1a1a1a
+        elevation: 8,
     },
     tableFelt: {
         flex: 1,
-        borderRadius: 90,
+        borderRadius: 110,
         borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(255,255,255,0.15)',
+        alignItems: 'center',
         justifyContent: 'center',
-        alignItems: 'center',
-    },
-    centerInfo: {
-        alignItems: 'center',
-        gap: 10,
+        gap: 4,
     },
     stakesText: {
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: 12,
-        fontWeight: 'bold',
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 11,
+        marginBottom: 4,
     },
     communityCards: {
         flexDirection: 'row',
         gap: 4,
-        marginTop: 10,
     },
-    emptyCard: {
-        backgroundColor: 'rgba(0,0,0,0.2)',
-        borderColor: 'rgba(255,255,255,0.1)',
-    },
-    potContainer: {
+    potRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 12,
-        marginTop: 10,
+        gap: 4,
+        marginTop: 4,
     },
-    potLabel: {
-        color: COLORS.muted,
-        fontSize: 12,
+    potChips: {
+        color: '#ef4444',
+        fontSize: 8,
+        letterSpacing: -2,
     },
-    potValue: {
-        color: COLORS.text,
-        fontWeight: 'bold',
-        fontSize: 14,
+    potText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 11,
     },
 
-    // Seats
-    seatContainer: {
+    // Seats overlay
+    seatsOverlay: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    seat: {
         position: 'absolute',
         alignItems: 'center',
-        width: 70,
-        height: 80,
+        gap: 4,
     },
-    emptySeat: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        marginTop: 30, // Push down to where stack would be
+    seatFolded: {
+        opacity: 0.4,
     },
-    emptySeatText: {
-        color: 'rgba(255,255,255,0.3)',
-    },
-
-    // Player
-    playerCards: {
+    seatCards: {
         flexDirection: 'row',
-        marginBottom: -10, // Overlap stack slightly
-        zIndex: 10,
+        gap: 2,
     },
-    heroCards: {
-        transform: [{ scale: 1.2 }, { translateY: -10 }],
-    },
-    playerInfo: {
-        width: 66,
-        padding: 4,
-        alignItems: 'center',
-        borderRadius: 6,
-        backgroundColor: '#fff', // Solid white override for visibility or use glass
-        zIndex: 20,
-    },
-    heroInfo: {
-        borderColor: COLORS.accent,
-        borderWidth: 2,
-    },
-    foldedPlayer: {
-        opacity: 0.5,
-    },
-    playerName: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: COLORS.text,
-        textAlign: 'center',
-    },
-    playerStack: {
-        fontSize: 10,
-        color: COLORS.text,
-        fontWeight: 'bold',
-    },
-
-    // Badges
-    dealerBtn: {
-        position: 'absolute',
-        top: -8,
-        right: -8,
-        width: 18,
-        height: 18,
-        borderRadius: 9,
+    seatInfo: {
         backgroundColor: '#fff',
+        borderRadius: 8,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
         alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 30,
+        minWidth: 55,
     },
-    dealerText: {
-        fontSize: 10,
-        fontWeight: 'bold',
+    seatInfoHero: {
+        shadowColor: '#10b981',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 1,
+        shadowRadius: 3,
+        elevation: 4,
+        borderWidth: 2,
+        borderColor: '#10b981',
+    },
+    seatInfoActive: {
+        shadowColor: '#10b981',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 1,
+        shadowRadius: 3,
+        elevation: 4,
+    },
+    posLabel: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#333',
+    },
+    posLabelHero: {
+        backgroundColor: '#10b981',
         color: '#000',
-    },
-    actionBadge: {
-        position: 'absolute',
-        bottom: -8,
         paddingHorizontal: 6,
         paddingVertical: 2,
         borderRadius: 4,
-        backgroundColor: '#333',
+        fontSize: 9,
+        overflow: 'hidden',
     },
-    actionText: {
-        fontSize: 8,
-        color: '#fff',
+    stackText: {
+        fontSize: 12,
+        color: '#000',
+        fontWeight: '700',
+    },
+    dealerBtn: {
+        position: 'absolute',
+        top: 30,
+        right: -8,
+        width: 24,
+        height: 24,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+    },
+    dealerText: {
+        fontSize: 14,
         fontWeight: 'bold',
-        textTransform: 'uppercase',
+        color: '#000',
     },
-    foldBadge: { backgroundColor: '#4b5563' },
-    checkBadge: { backgroundColor: COLORS.accent },
-    callBadge: { backgroundColor: COLORS.accent },
-    betBadge: { backgroundColor: COLORS.chartGold },
-    raiseBadge: { backgroundColor: COLORS.danger },
 });

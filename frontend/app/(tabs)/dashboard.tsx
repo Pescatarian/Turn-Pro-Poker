@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, TextInput } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSync } from '../../contexts/SyncContext';
+import { useRouter } from 'expo-router';
 import { database } from '../../model';
 import Session from '../../model/Session';
 import { Q } from '@nozbe/watermelondb';
@@ -10,15 +11,16 @@ import { GlassCard } from '../../components/ui/GlassCard';
 import { COLORS, GRADIENTS } from '../../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { BankrollChart } from '../../components/dashboard/BankrollChart';
-import { SyncIndicator } from '../../components/SyncIndicator';
+import { BankrollChart, ChartXAxisMode } from '../../components/dashboard/BankrollChart';
 import Svg, { Circle, Path, Line } from 'react-native-svg';
 
 export default function Dashboard() {
     const { user } = useAuth();
     const { triggerSync } = useSync();
+    const router = useRouter();
     const [refreshing, setRefreshing] = useState(false);
     const [privacyMode, setPrivacyMode] = useState(false);
+    const [chartXAxisMode, setChartXAxisMode] = useState<ChartXAxisMode>('sessions');
 
     // Stats state
     const [bankroll, setBankroll] = useState(5000);
@@ -39,11 +41,46 @@ export default function Dashboard() {
     const [expensesBB100, setExpensesBB100] = useState(0);
     const [chartData, setChartData] = useState<any[]>([]);
     const [netChartData, setNetChartData] = useState<any[]>([]);
+    const [rawSessions, setRawSessions] = useState<Session[]>([]);
+
+    const buildChartData = useCallback((sessions: Session[], mode: ChartXAxisMode) => {
+        let runningTotal = 0;
+        let runningNet = 0;
+        const cData: any[] = [{ value: 0, label: mode === 'sessions' ? 'S0' : mode === 'hours' ? '0h' : '0' }];
+        const nData: any[] = [{ value: 0 }];
+
+        let cumulativeHours = 0;
+
+        sessions.forEach((s, i) => {
+            runningTotal += s.profit;
+            runningNet += s.profit - (s.tips || 0) - (s.expenses || 0);
+            cumulativeHours += s.durationHours;
+
+            let label: string;
+            if (mode === 'sessions') {
+                label = `S${i + 1}`;
+            } else if (mode === 'hours') {
+                label = `${cumulativeHours.toFixed(0)}h`;
+            } else {
+                // Approximate 25 hands/hour for live poker
+                const hands = Math.round(cumulativeHours * 25);
+                label = `${hands}`;
+            }
+
+            cData.push({ value: runningTotal, label });
+            nData.push({ value: runningNet });
+        });
+
+        setChartData(cData);
+        setNetChartData(nData);
+    }, []);
 
     const loadData = async () => {
         const sessions = await database.collections.get('sessions').query(
             Q.sortBy('start_time', Q.asc)
         ).fetch() as Session[];
+
+        setRawSessions(sessions);
 
         // Calculate stats
         const profit = sessions.reduce((sum, s) => sum + s.profit, 0);
@@ -76,21 +113,8 @@ export default function Dashboard() {
             setExpensesBB100(-(expensesTotal / avgBB) / (handsPlayed / 100));
         }
 
-        // Chart data
-        let runningTotal = 0;
-        let runningNet = 0;
-        const cData: any[] = [{ value: 0, label: 'S0' }];
-        const nData: any[] = [{ value: 0 }];
-
-        sessions.forEach((s, i) => {
-            runningTotal += s.profit;
-            runningNet += s.profit - (s.tips || 0) - (s.expenses || 0);
-            cData.push({ value: runningTotal, label: `S${i + 1}` });
-            nData.push({ value: runningNet });
-        });
-
-        setChartData(cData);
-        setNetChartData(nData);
+        // Build chart data with current mode
+        buildChartData(sessions, chartXAxisMode);
     };
 
     useEffect(() => {
@@ -108,6 +132,21 @@ export default function Dashboard() {
 
         // Cleanup subscription on unmount
         return () => subscription.unsubscribe();
+    }, []);
+
+    // Rebuild chart labels when mode changes
+    useEffect(() => {
+        if (rawSessions.length > 0) {
+            buildChartData(rawSessions, chartXAxisMode);
+        }
+    }, [chartXAxisMode, rawSessions, buildChartData]);
+
+    const toggleChartXAxis = useCallback(() => {
+        setChartXAxisMode(prev => {
+            if (prev === 'sessions') return 'hours';
+            if (prev === 'hours') return 'hands';
+            return 'sessions';
+        });
     }, []);
 
     const onRefresh = async () => {
@@ -167,7 +206,6 @@ export default function Dashboard() {
                 contentContainerStyle={styles.content}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />}
             >
-
                 {/* Bankroll Header */}
                 <View style={styles.headerRow}>
                     <TouchableOpacity style={styles.bankrollCard}>
@@ -188,15 +226,18 @@ export default function Dashboard() {
                         <ChevronRight />
                     </TouchableOpacity>
 
-                    <SyncIndicator />
-
                     <TouchableOpacity style={styles.eyeBtn} onPress={() => setPrivacyMode(!privacyMode)}>
                         <EyeIcon />
                     </TouchableOpacity>
                 </View>
 
                 {/* Chart */}
-                <BankrollChart data={chartData} netData={netChartData} />
+                <BankrollChart
+                    data={chartData}
+                    netData={netChartData}
+                    xAxisMode={chartXAxisMode}
+                    onToggleXAxis={toggleChartXAxis}
+                />
 
                 {/* Stats Grid - 2x4 */}
                 <View style={styles.statsGrid}>

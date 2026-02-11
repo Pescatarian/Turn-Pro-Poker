@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import Svg, { Circle, Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { COLORS, GRADIENTS } from '../../constants/theme';
 
@@ -37,6 +38,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
     searchValue = '',
     onSearchChange,
 }) => {
+    const router = useRouter();
     return (
         <View style={styles.container}>
             {/* User Avatar */}
@@ -55,7 +57,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
             </View>
 
             {/* Get Coach Button */}
-            <TouchableOpacity style={styles.coachButton}>
+            <TouchableOpacity style={styles.coachButton} onPress={() => router.push('/coach' as any)}>
                 <LinearGradient
                     colors={GRADIENTS.button}
                     style={styles.coachGradient}

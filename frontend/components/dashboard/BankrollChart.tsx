@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { COLORS, FONTS } from '../../constants/theme';
 import { GlassCard } from '../ui/GlassCard';
+
+export type ChartXAxisMode = 'sessions' | 'hours' | 'hands';
 
 interface ChartPoint {
     value: number;
@@ -13,9 +15,17 @@ interface ChartPoint {
 interface BankrollChartProps {
     data: ChartPoint[];
     netData?: ChartPoint[];
+    xAxisMode?: ChartXAxisMode;
+    onToggleXAxis?: () => void;
 }
 
-export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData }) => {
+const TOGGLE_LABELS: Record<ChartXAxisMode, string> = {
+    sessions: 'S',
+    hours: '⏱️',
+    hands: 'H',
+};
+
+export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAxisMode = 'sessions', onToggleXAxis }) => {
     const screenWidth = Dimensions.get('window').width;
     const CHART_HEIGHT = 180;
 
@@ -38,16 +48,6 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData }) =
         <GlassCard style={styles.container} intensity={20}>
             <View style={styles.header}>
                 <Text style={styles.title}>Performance</Text>
-                <View style={styles.legend}>
-                    <View style={[styles.dot, { backgroundColor: COLORS.chartGold }]} />
-                    <Text style={styles.legendText}>Won</Text>
-                    {netData && (
-                        <>
-                            <View style={[styles.dot, { backgroundColor: COLORS.chartGreen, marginLeft: 10 }]} />
-                            <Text style={styles.legendText}>Net Profit (after tips & expenses)</Text>
-                        </>
-                    )}
-                </View>
             </View>
 
             {/* Fixed height chart container to prevent stretching */}
@@ -111,6 +111,25 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData }) =
                     }}
                 />
             </View>
+
+            {/* Legend + Toggle */}
+            <View style={styles.legendRow}>
+                {onToggleXAxis && (
+                    <TouchableOpacity style={styles.toggleBtn} onPress={onToggleXAxis} activeOpacity={0.7}>
+                        <Text style={styles.toggleText}>{TOGGLE_LABELS[xAxisMode]}</Text>
+                    </TouchableOpacity>
+                )}
+                <View style={styles.legend}>
+                    <View style={[styles.dot, { backgroundColor: COLORS.chartGold }]} />
+                    <Text style={styles.legendText}>Won</Text>
+                    {netData && (
+                        <>
+                            <View style={[styles.dot, { backgroundColor: COLORS.chartGreen, marginLeft: 10 }]} />
+                            <Text style={styles.legendText}>Net Profit (after tips & expenses)</Text>
+                        </>
+                    )}
+                </View>
+            </View>
         </GlassCard>
     );
 };
@@ -132,12 +151,33 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 'bold',
     },
+    legendRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginTop: 12,
+        justifyContent: 'center',
+    },
+    toggleBtn: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        borderWidth: 1.5,
+        borderColor: 'rgba(16,185,129,0.3)',
+        backgroundColor: 'rgba(16,185,129,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    toggleText: {
+        color: COLORS.accent,
+        fontSize: 13,
+        fontWeight: '600',
+    },
     legend: {
         flexDirection: 'row',
         alignItems: 'center',
         flexWrap: 'wrap',
-        flex: 1,
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
     },
     dot: {
         width: 16,

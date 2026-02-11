@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
-import { LineChart } from 'react-native-gifted-charts';
+import { LineChart, yAxisSides } from 'react-native-gifted-charts';
 import { COLORS, FONTS } from '../../constants/theme';
 import { GlassCard } from '../ui/GlassCard';
 
@@ -46,11 +46,7 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAx
 
     return (
         <GlassCard style={styles.container} intensity={20}>
-            <View style={styles.header}>
-                <Text style={styles.title}>Performance</Text>
-            </View>
-
-            {/* Fixed height chart container to prevent stretching */}
+            {/* Chart container */}
             <View style={styles.chartWrapper}>
                 <LineChart
                     data={data}
@@ -79,7 +75,8 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAx
                     noOfSections={5}
                     maxValue={maxVal + padding}
                     mostNegativeValue={minVal - padding}
-                    yAxisLabelWidth={35}
+                    yAxisSide={yAxisSides.RIGHT}
+                    yAxisLabelWidth={40}
                     curved
                     curvature={0.2}
                     pointerConfig={{
@@ -139,17 +136,6 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         padding: 16,
         paddingBottom: 20,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 12,
-    },
-    title: {
-        color: COLORS.text,
-        fontSize: 14,
-        fontWeight: 'bold',
     },
     legendRow: {
         flexDirection: 'row',

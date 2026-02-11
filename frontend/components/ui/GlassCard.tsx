@@ -43,20 +43,20 @@ export const GlassCard: React.FC<GlassCardProps> = ({ children, style, intensity
 const styles = StyleSheet.create({
     container: {
         padding: 16,
-        borderRadius: 12,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: COLORS.glassBorder,
         marginBottom: 12,
-        // Shadow
+        // Subtle shadow — CSS box-shadow doesn't translate to Android;
+        // high elevation creates ugly dark halos on Android
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-        backgroundColor: 'rgba(255,255,255,0.01)', // Fallback bg
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 0,
+        backgroundColor: 'rgba(255,255,255,0.01)',
     },
     overflowHidden: {
         overflow: 'hidden',
     },
 });
-

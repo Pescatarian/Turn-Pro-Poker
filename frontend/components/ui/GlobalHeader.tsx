@@ -9,6 +9,7 @@ interface GlobalHeaderProps {
     searchPlaceholder?: string;
     searchValue?: string;
     onSearchChange?: (text: string) => void;
+    headerContent?: React.ReactNode;
 }
 
 // User Avatar with gradient ring
@@ -37,6 +38,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
     searchPlaceholder = "Search by BB, date, location...",
     searchValue = '',
     onSearchChange,
+    headerContent,
 }) => {
     const router = useRouter();
     return (
@@ -44,17 +46,21 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
             {/* User Avatar */}
             <UserAvatar />
 
-            {/* Search Bar */}
-            <View style={styles.searchContainer}>
-                <SearchIcon />
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder={searchPlaceholder}
-                    placeholderTextColor={COLORS.muted}
-                    value={searchValue}
-                    onChangeText={onSearchChange}
-                />
-            </View>
+            {/* Custom header content OR Search Bar */}
+            {headerContent ? (
+                <View style={styles.customContent}>{headerContent}</View>
+            ) : (
+                <View style={styles.searchContainer}>
+                    <SearchIcon />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder={searchPlaceholder}
+                        placeholderTextColor={COLORS.muted}
+                        value={searchValue}
+                        onChangeText={onSearchChange}
+                    />
+                </View>
+            )}
 
             {/* Get Coach Button */}
             <TouchableOpacity style={styles.coachButton} onPress={() => router.push('/coach' as any)}>
@@ -127,5 +133,8 @@ const styles = StyleSheet.create({
         color: '#052018',
         fontSize: 13,
         fontWeight: '700',
+    },
+    customContent: {
+        flex: 1,
     },
 });

@@ -12,6 +12,7 @@ interface ScreenWrapperProps {
     searchPlaceholder?: string;
     searchValue?: string;
     onSearchChange?: (text: string) => void;
+    headerContent?: React.ReactNode;
 }
 
 export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
@@ -21,6 +22,7 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
     searchPlaceholder,
     searchValue,
     onSearchChange,
+    headerContent,
 }) => {
     return (
         <LinearGradient
@@ -36,6 +38,7 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
                         searchPlaceholder={searchPlaceholder}
                         searchValue={searchValue}
                         onSearchChange={onSearchChange}
+                        headerContent={headerContent}
                     />
                 )}
                 <View style={styles.content}>

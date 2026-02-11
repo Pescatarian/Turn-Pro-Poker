@@ -9,7 +9,7 @@ export const COLORS = {
 
   // Opacities & Glass
   glass: 'rgba(255, 255, 255, 0.03)',
-  glassBorder: 'rgba(255, 255, 255, 0.06)',
+  glassBorder: 'rgba(255, 255, 255, 0.02)',
 
   // Text
   text: '#e6eef1',
@@ -28,7 +28,7 @@ export const GRADIENTS = {
   mainDetails: [COLORS.bg, COLORS.bgGradientEnd] as const, // For Screen Background
   button: [COLORS.buttonGradientStart, COLORS.buttonGradientEnd] as const,
   dangerButton: [COLORS.danger, '#dc2626'] as const,
-  card: ['rgba(255,255,255,0.015)', 'rgba(255,255,255,0.01)'] as const,
+  card: ['rgba(255,255,255,0.025)', 'rgba(255,255,255,0.01)'] as const,
 };
 
 export const FONTS = {

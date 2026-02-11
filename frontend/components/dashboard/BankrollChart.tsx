@@ -27,7 +27,7 @@ const TOGGLE_LABELS: Record<ChartXAxisMode, string> = {
 
 export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAxisMode = 'sessions', onToggleXAxis }) => {
     const screenWidth = Dimensions.get('window').width;
-    const CHART_HEIGHT = 180;
+    const CHART_HEIGHT = 155;
     const Y_LABEL_WIDTH = 45;
     const CHART_WIDTH = screenWidth - 80 - Y_LABEL_WIDTH;
 
@@ -137,9 +137,9 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAx
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: 16,
-        padding: 16,
-        paddingBottom: 20,
+        marginBottom: 6,
+        padding: 12,
+        paddingBottom: 16,
     },
     legendRow: {
         flexDirection: 'row',
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     chartWrapper: {
-        height: 220,
+        height: 190,
     },
     tooltipContainer: {
         height: 70,

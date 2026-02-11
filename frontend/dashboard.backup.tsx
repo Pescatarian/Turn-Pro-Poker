@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import Svg, { Path } from 'react-native-svg';
 import { useSync } from '../../contexts/SyncContext';
 import { useRouter } from 'expo-router';
 import { database } from '../../model';
@@ -242,30 +243,35 @@ export default function Dashboard() {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Bankroll Hero */}
-                <TouchableOpacity style={styles.bankrollHero} onPress={() => setBankrollModalVisible(true)} activeOpacity={0.7}>
-                    <View style={styles.bankrollLabelRow}>
-                        <Text style={styles.bankrollLabel}>My Bankroll</Text>
-                        <TouchableOpacity onPress={togglePrivacy} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                            <Ionicons
-                                name={privacyMode ? 'eye-off-outline' : 'eye-outline'}
-                                size={14}
-                                color={COLORS.muted}
-                            />
-                        </TouchableOpacity>
-                    </View>
-                    <Text style={styles.bankrollValue}>
-                        {privacyMode ? '••••••' : `$${currentBankrollDisplay.toLocaleString()}`}
-                    </Text>
-                    <View style={styles.bankrollChangeRow}>
-                        <Text style={[styles.bankrollChange, { color: bankrollChange >= 0 ? COLORS.accent : COLORS.danger }]}>
-                            {bankrollChange >= 0 ? '↗' : '↘'} {privacyMode ? '••••' : `${bankrollChange >= 0 ? '+' : ''}$${bankrollChange.toFixed(0)}`}
-                        </Text>
-                        <Text style={[styles.bankrollTrend, { color: bankrollTrend >= 0 ? COLORS.accent : COLORS.danger }]}>
-                            {privacyMode ? '••••' : `${bankrollTrend >= 0 ? '+' : ''}${bankrollTrend.toFixed(1)}%`}
-                        </Text>
-                    </View>
-                </TouchableOpacity>
+                {/* Bankroll Header */}
+                <View style={styles.headerRow}>
+                    <TouchableOpacity style={styles.bankrollCard} onPress={() => setBankrollModalVisible(true)}>
+                        <View style={styles.bankrollInfo}>
+                            <Text style={styles.bankrollLabel}>Bankroll</Text>
+                            <View style={styles.bankrollValueRow}>
+                                <Text style={styles.bankrollValue}>
+                                    {privacyMode ? '••••••' : `$${currentBankrollDisplay.toLocaleString()}`}
+                                </Text>
+                                <Text style={[styles.bankrollChange, { color: bankrollChange >= 0 ? COLORS.accent : COLORS.danger }]}>
+                                    {bankrollChange >= 0 ? '↗' : '↘'} {privacyMode ? '••••' : `${bankrollChange >= 0 ? '+' : ''}$${bankrollChange.toFixed(0)}`}
+                                </Text>
+                                <Text style={[styles.bankrollTrend, { color: bankrollTrend >= 0 ? COLORS.accent : COLORS.danger }]}>
+                                    {privacyMode ? '••••' : `${bankrollTrend >= 0 ? '+' : ''}${bankrollTrend.toFixed(1)}%`}
+                                </Text>
+                            </View>
+                        </View>
+                        <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+                            <Path d="M9 18l6-6-6-6" stroke={COLORS.muted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                        </Svg>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.eyeBtn} onPress={togglePrivacy}>
+                        <Ionicons
+                            name={privacyMode ? 'eye-off-outline' : 'eye-outline'}
+                            size={18}
+                            color={COLORS.muted}
+                        />
+                    </TouchableOpacity>
+                </View>
 
                 {/* Chart */}
                 <BankrollChart
@@ -376,42 +382,58 @@ const styles = StyleSheet.create({
         padding: 12,
         paddingBottom: 80,
     },
-    // Bankroll Hero
-    bankrollHero: {
-        alignItems: 'center',
-        paddingTop: 4,
-        paddingBottom: 16,
-        marginBottom: 8,
-    },
-    bankrollLabelRow: {
+    // Bankroll Header
+    headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        marginBottom: 4,
+        gap: 8,
+        marginBottom: 12,
+    },
+    bankrollCard: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'rgba(16,185,129,0.1)',
+        borderRadius: 8,
+        padding: 8,
+        paddingHorizontal: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(16,185,129,0.2)',
+    },
+    bankrollInfo: {
+        flex: 1,
     },
     bankrollLabel: {
-        fontSize: 12,
+        fontSize: 10,
         color: COLORS.muted,
         fontWeight: '600',
+        marginBottom: 2,
     },
-    bankrollValue: {
-        fontSize: 34,
-        fontWeight: '800',
-        color: COLORS.text,
-        marginBottom: 4,
-    },
-    bankrollChangeRow: {
+    bankrollValueRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
+        flexWrap: 'wrap',
+    },
+    bankrollValue: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: COLORS.accent,
     },
     bankrollChange: {
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: '700',
     },
     bankrollTrend: {
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: '700',
+    },
+    eyeBtn: {
+        padding: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
     },
     // Stats Rows
     statsCard: {

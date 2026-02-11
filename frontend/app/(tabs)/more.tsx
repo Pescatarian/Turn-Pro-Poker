@@ -101,7 +101,7 @@ export default function MoreScreen() {
     };
 
     const menuItems: MenuItemType[] = [
-        { icon: 'card-outline', title: 'Payments', subtitle: 'Manage bankroll transactions', onPress: () => comingSoon('Payments'), right: 'chevron' },
+        { icon: 'card-outline', title: 'Transactions', subtitle: 'View bankroll transactions', onPress: () => router.push('/(tabs)/more/transactions' as any), right: 'chevron' },
         { icon: 'people-outline', title: 'Player Profiles', subtitle: 'Track opponents & friends', onPress: () => comingSoon('Player Profiles'), right: 'chevron' },
         { icon: 'location-outline', title: 'Locations', subtitle: 'Manage your poker venues', onPress: () => comingSoon('Locations'), right: 'chevron' },
         { icon: 'document-text-outline', title: 'Notepad', subtitle: 'Quick notes & observations', onPress: () => comingSoon('Notepad'), right: 'chevron' },

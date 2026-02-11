@@ -28,6 +28,8 @@ const TOGGLE_LABELS: Record<ChartXAxisMode, string> = {
 export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAxisMode = 'sessions', onToggleXAxis }) => {
     const screenWidth = Dimensions.get('window').width;
     const CHART_HEIGHT = 180;
+    const Y_LABEL_WIDTH = 45;
+    const CHART_WIDTH = screenWidth - 80 - Y_LABEL_WIDTH;
 
     if (!data || data.length === 0) {
         return (
@@ -52,7 +54,7 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAx
                     data={data}
                     data2={netData}
                     height={CHART_HEIGHT}
-                    width={screenWidth - 80}
+                    width={CHART_WIDTH}
                     thickness={2}
                     color={COLORS.chartGold}
                     color2={COLORS.chartGreen}
@@ -64,8 +66,9 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAx
                     endFillColor2={COLORS.chartGreen}
                     startOpacity={0.15}
                     endOpacity={0.0}
-                    initialSpacing={10}
-                    spacing={(screenWidth - 100) / Math.max(data.length - 1, 1)}
+                    initialSpacing={5}
+                    endSpacing={5}
+                    spacing={(CHART_WIDTH - 20) / Math.max(data.length - 1, 1)}
                     yAxisColor="transparent"
                     xAxisColor={COLORS.glassBorder}
                     yAxisTextStyle={{ color: COLORS.muted, fontSize: 9 }}
@@ -76,7 +79,8 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAx
                     maxValue={maxVal + padding}
                     mostNegativeValue={minVal - padding}
                     yAxisSide={yAxisSides.RIGHT}
-                    yAxisLabelWidth={40}
+                    yAxisLabelWidth={Y_LABEL_WIDTH}
+                    hideYAxisText={false}
                     curved
                     curvature={0.2}
                     pointerConfig={{
@@ -182,7 +186,6 @@ const styles = StyleSheet.create({
     },
     chartWrapper: {
         height: 220,
-        overflow: 'hidden',
     },
     tooltipContainer: {
         height: 70,

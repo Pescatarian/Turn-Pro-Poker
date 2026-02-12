@@ -1,8 +1,8 @@
 # Turn Pro Poker - Implementation Plan
 
 > **Status as of Feb 12, 2026**  
-> Phase 5 Batch 1 & Batch 2 complete. Dashboard, More page, and Transactions fully built.  
-> **Next:** UI polish (stats page filters, loading states, toast system, error boundaries).
+> Phase 5 Batch 1, Batch 2, & UI Polish batch complete. All core screens polished.  
+> **Next:** Stats page filters, remaining "coming soon" features, iOS build.
 
 ---
 
@@ -37,17 +37,23 @@
 - **ScreenWrapper** - consistent layout component
 - **Theme system** (COLORS, GRADIENTS, FONTS)
 - **Hands replayer UI** - 9-seat table, card/suit picker, action buttons/history
+- **Toast notification system** - replaced ~25 Alert.alert calls with dismissible toasts
+- **Error boundary** - class-based boundary wrapping app provider tree
+- **Skeleton loaders** - dashboard, stats, bankroll screens
+- **Privacy mode enhanced** - hides chart, grays values, hides trend arrow on dashboard + stats
+- **Chart fixes** - proper negative value support, zero-line indicator, clean y-axis labels, toggle repositioned
+- **Session modal** - KeyboardAvoidingView prevents keyboard overlap
+- **Header cleanup** - removed user avatar, filter chips + Get Coach span full width
+- **Tab navigator** - `lazy={false}` eliminates first-navigation flash
 - Basic tests (6/11 passing — pre-existing failures)
 
 ### ⏳ Blocked (LOW PRIORITY)
 - Real purchase testing (needs Google Play Console — deliberately deferred)
 
 ### ⏳ Upcoming
-- Stats page: wire to global `PrivacyContext` + add filters
-- Loading states / skeleton loaders (none exist)
-- Toast notification system (36 `Alert.alert` calls to replace)
-- Error boundaries (none exist)
+- Stats page: add time-range + venue filters (dashboard has them, stats does not)
 - Remaining "coming soon" items (Player Profiles, Locations, Notepad, Calendar, PDF Export)
+- Hand replayer animations (Share/Play buttons show "coming soon")
 - iOS build
 - Comprehensive testing
 - App Store submission

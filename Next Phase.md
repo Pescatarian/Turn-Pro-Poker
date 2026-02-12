@@ -1,7 +1,7 @@
 # Turn Pro Poker - Development Roadmap
 
-> **📍 Current Status:** Phase 5 Batch 1 & Batch 2 complete. Dashboard fully featured. More page built out.
-> **🎯 Next Priority:** UI polish (loading states, toast system, stats page filters) + remaining "coming soon" features
+> **📍 Current Status:** Phase 5 Batch 1, Batch 2, & UI Polish batch complete. All core screens polished.
+> **🎯 Next Priority:** Stats page filters + remaining "coming soon" features + iOS build
 
 ---
 
@@ -147,12 +147,19 @@
 - [x] Theme system (`constants/theme.ts`) with COLORS, GRADIENTS, FONTS
 - [x] Dashboard styling finalized (shadow-halo fix, stat card values 20px/fw600)
 
+### Batch 3: UI Polish ✅ COMPLETE
+- [x] Toast notification system (replaced ~25 Alert.alert calls with dismissible toasts)
+- [x] Error boundary (class-based, wraps app provider tree)
+- [x] Skeleton loaders (dashboard, stats, bankroll screens)
+- [x] Privacy mode enhanced (hides chart, grays values, hides trend on dashboard + stats)
+- [x] Chart fixes (negative values, zero-line, clean y-axis, toggle repositioned)
+- [x] Session modal KeyboardAvoidingView
+- [x] Header cleanup (removed user avatar, full-width filter + Get Coach)
+- [x] Tab navigator lazy=false (eliminates first-navigation flash)
+- [x] Fixed pre-existing Date|null TypeScript errors
+
 ### UI Polish (Remaining)
-- [ ] Stats page: wire to global `PrivacyContext` (currently uses local state)
 - [ ] Stats page: add time-range + venue filters (dashboard has them, stats does not)
-- [ ] Loading states + skeleton loaders (currently none exist)
-- [ ] Toast notifications (currently 36 `Alert.alert` calls, no toast system)
-- [ ] Error boundaries (currently none exist)
 - [ ] Hand replayer animations (Share/Play buttons show "coming soon")
 
 ### More Page — "Coming Soon" Items

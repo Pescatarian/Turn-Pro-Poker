@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import Svg, { Circle, Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { COLORS, GRADIENTS } from '../../constants/theme';
 
 interface GlobalHeaderProps {
@@ -11,20 +11,6 @@ interface GlobalHeaderProps {
     onSearchChange?: (text: string) => void;
     headerContent?: React.ReactNode;
 }
-
-// User Avatar with gradient ring
-const UserAvatar = () => (
-    <View style={styles.avatarWrapper}>
-        <View style={styles.avatarRing}>
-            <View style={styles.avatarInner}>
-                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-                    <Path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke={COLORS.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                    <Circle cx="12" cy="7" r="4" stroke={COLORS.accent} strokeWidth={2} />
-                </Svg>
-            </View>
-        </View>
-    </View>
-);
 
 // Search Icon
 const SearchIcon = () => (
@@ -43,9 +29,6 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
     const router = useRouter();
     return (
         <View style={styles.container}>
-            {/* User Avatar */}
-            <UserAvatar />
-
             {/* Custom header content OR Search Bar */}
             {headerContent ? (
                 <View style={styles.customContent}>{headerContent}</View>
@@ -83,27 +66,6 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         backgroundColor: COLORS.bg,
         gap: 10,
-    },
-    avatarWrapper: {
-        width: 40,
-        height: 40,
-    },
-    avatarRing: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        borderWidth: 2,
-        borderColor: COLORS.accent,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    avatarInner: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     searchContainer: {
         flex: 1,

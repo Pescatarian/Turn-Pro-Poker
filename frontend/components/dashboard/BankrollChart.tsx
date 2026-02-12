@@ -41,18 +41,40 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAx
 
     // Calculate min/max for proper scaling
     const allValues = [...data.map(d => d.value), ...(netData?.map(d => d.value) || [])];
-    const minVal = Math.min(...allValues);
-    const maxVal = Math.max(...allValues);
-    const range = maxVal - minVal || 1;
-    const padding = range * 0.1; // 10% padding
+    const rawMin = Math.min(...allValues);
+    const rawMax = Math.max(...allValues);
+
+    // Compute nice rounded step for y-axis
+    const rawRange = rawMax - rawMin || 1;
+    const roughStep = rawRange / 5;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
+    const niceStep = Math.ceil(roughStep / magnitude) * magnitude;
+
+    // For negative values, use yAxisOffset to shift the baseline
+    const yAxisOffset = rawMin < 0 ? Math.ceil(Math.abs(rawMin) / niceStep) * niceStep : 0;
+
+    // Shift data so all values are >= 0 for the chart library
+    const shiftedData = data.map(d => ({ ...d, value: d.value + yAxisOffset }));
+    const shiftedNetData = netData?.map(d => ({ ...d, value: d.value + yAxisOffset }));
+
+    // Max value after shift, rounded up to a nice number
+    const shiftedMax = rawMax + yAxisOffset;
+    const maxValue = Math.ceil(shiftedMax / niceStep) * niceStep;
+
+    // Custom y-axis label formatter to show real values (subtract offset)
+    const formatYLabel = (val: string) => {
+        const num = Number(val) - yAxisOffset;
+        if (Math.abs(num) >= 1000) return `${(num / 1000).toFixed(1)}k`;
+        return `${num}`;
+    };
 
     return (
         <GlassCard style={styles.container} intensity={20}>
             {/* Chart container */}
             <View style={styles.chartWrapper}>
                 <LineChart
-                    data={data}
-                    data2={netData}
+                    data={shiftedData}
+                    data2={shiftedNetData}
                     height={CHART_HEIGHT}
                     width={CHART_WIDTH}
                     thickness={2}
@@ -76,11 +98,19 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAx
                     rulesColor="rgba(255,255,255,0.03)"
                     hideRules={false}
                     noOfSections={5}
-                    maxValue={maxVal + padding}
-                    mostNegativeValue={minVal - padding}
+                    maxValue={maxValue}
                     yAxisSide={yAxisSides.RIGHT}
                     yAxisLabelWidth={Y_LABEL_WIDTH}
                     hideYAxisText={false}
+                    formatYLabel={formatYLabel}
+                    showReferenceLine1={yAxisOffset > 0}
+                    referenceLine1Position={yAxisOffset}
+                    referenceLine1Config={{
+                        color: 'rgba(255,255,255,0.25)',
+                        dashWidth: 4,
+                        dashGap: 4,
+                        thickness: 1,
+                    }}
                     curved
                     curvature={0.2}
                     pointerConfig={{
@@ -94,15 +124,17 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAx
                         activatePointersOnLongPress: false,
                         autoAdjustPointerLabelPosition: true,
                         pointerLabelComponent: (items: any) => {
+                            const realVal = (items[0]?.value ?? 0) - yAxisOffset;
+                            const realNet = items[1] ? (items[1]?.value ?? 0) - yAxisOffset : null;
                             return (
                                 <View style={styles.tooltipContainer}>
                                     <View style={styles.tooltip}>
                                         <Text style={styles.tooltipValue}>
-                                            ${items[0]?.value?.toFixed(0) || 0}
+                                            ${realVal.toFixed(0)}
                                         </Text>
-                                        {items[1] && (
+                                        {realNet !== null && (
                                             <Text style={styles.tooltipNet}>
-                                                Net: ${items[1]?.value?.toFixed(0) || 0}
+                                                Net: ${realNet.toFixed(0)}
                                             </Text>
                                         )}
                                     </View>
@@ -115,11 +147,6 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAx
 
             {/* Legend + Toggle */}
             <View style={styles.legendRow}>
-                {onToggleXAxis && (
-                    <TouchableOpacity style={styles.toggleBtn} onPress={onToggleXAxis} activeOpacity={0.7}>
-                        <Text style={styles.toggleText}>{TOGGLE_LABELS[xAxisMode]}</Text>
-                    </TouchableOpacity>
-                )}
                 <View style={styles.legend}>
                     <View style={[styles.dot, { backgroundColor: COLORS.chartGold }]} />
                     <Text style={styles.legendText}>Won</Text>
@@ -130,6 +157,11 @@ export const BankrollChart: React.FC<BankrollChartProps> = ({ data, netData, xAx
                         </>
                     )}
                 </View>
+                {onToggleXAxis && (
+                    <TouchableOpacity style={styles.toggleBtn} onPress={onToggleXAxis} activeOpacity={0.7}>
+                        <Text style={styles.toggleText}>{TOGGLE_LABELS[xAxisMode]}</Text>
+                    </TouchableOpacity>
+                )}
             </View>
         </GlassCard>
     );
@@ -146,7 +178,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 12,
         marginTop: 12,
-        justifyContent: 'center',
+        justifyContent: 'space-between',
     },
     toggleBtn: {
         width: 24,

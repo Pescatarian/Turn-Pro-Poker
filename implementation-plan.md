@@ -1,8 +1,8 @@
 # Turn Pro Poker - Implementation Plan
 
-> **Status as of Feb 10, 2026**  
-> Phase 3 blocked on Play Console. Phase 5 Batch 1 complete (CSV export, session form UX, swipe gestures).  
-> **Next:** Batch 2 (reactive bankroll, privacy mode, stats filters) + purchase testing.
+> **Status as of Feb 12, 2026**  
+> Phase 5 Batch 1 & Batch 2 complete. Dashboard, More page, and Transactions fully built.  
+> **Next:** UI polish (stats page filters, loading states, toast system, error boundaries).
 
 ---
 
@@ -25,13 +25,29 @@
 - **Session form UX** - native date picker, location dropdown, game type toggle
 - **Swipe gestures** on session cards (delete right, edit left)
 - **Location management** hook (`hooks/useLocations.ts`)
+- **Dashboard filters** - FilterChips (week/month/3mo/year/all + venue)
+- **BankrollChart** - multi-series (Won + Net Profit), x-axis toggle, tooltips
+- **BankrollModal** - deposit/withdraw forms, navigate to transactions
+- **Transactions page** - full CRUD (add/edit/delete), privacy-aware
+- **Global Privacy Mode** - `PrivacyContext` used in dashboard, transactions, BankrollModal
+- **Passcode Lock** - 4-digit setup, auto-lock on background, verify on resume
+- **SessionModalContext** - shared add/edit session modal state
+- **More page** - profile card, features menu, settings, premium upgrade banner
+- **GlassCard** with BlurView across 7 screens
+- **ScreenWrapper** - consistent layout component
+- **Theme system** (COLORS, GRADIENTS, FONTS)
+- **Hands replayer UI** - 9-seat table, card/suit picker, action buttons/history
 - Basic tests (6/11 passing — pre-existing failures)
 
-### ⏳ Blocked
-- Real purchase testing (needs Google Play Console)
+### ⏳ Blocked (LOW PRIORITY)
+- Real purchase testing (needs Google Play Console — deliberately deferred)
 
 ### ⏳ Upcoming
-- Batch 2: Reactive bankroll, global privacy mode, stats filters
+- Stats page: wire to global `PrivacyContext` + add filters
+- Loading states / skeleton loaders (none exist)
+- Toast notification system (36 `Alert.alert` calls to replace)
+- Error boundaries (none exist)
+- Remaining "coming soon" items (Player Profiles, Locations, Notepad, Calendar, PDF Export)
 - iOS build
 - Comprehensive testing
 - App Store submission
@@ -58,19 +74,19 @@ flowchart LR
 
 ---
 
-## Current Priority: Purchase Testing & iOS Build (Phase 3-4)
+## Current Priority: UI Polish & Feature Completion (Phase 5)
 
-**RevenueCat ✅ Done:** Account created, SDK configured, products defined, webhook handler ready, paywall UI redesigned.
+**Dashboard ✅ Done:** Filters, BankrollChart, BankrollModal, privacy toggle, stat cards.
 
 **Next Steps:**
-1. Set up Google Play Developer account ($25)
-2. Upload app to Play Console (internal testing)
-3. Create subscription products in Play Console
-4. Link products to RevenueCat
-5. Test purchases with sandbox accounts
-6. Configure iOS app in RevenueCat
+1. Wire Stats page to global `PrivacyContext` (currently local `useState`)
+2. Add FilterChips to Stats page (time-range + venue, like dashboard)
+3. Implement toast notification system (replace 36 `Alert.alert` calls)
+4. Add skeleton loaders for data-fetching screens
+5. Add ErrorBoundary wrapper
+6. Build out "coming soon" features (Player Profiles, Locations, etc.)
 
-**ETA:** 2-3 days once Play Console is set up
+**ETA:** 1-2 weeks
 
 ---
 
@@ -105,8 +121,10 @@ npx eas-cli update --branch preview --message "Your changes"
 | **Hot-Reload Setup** | **1 day** | ✅ **Complete** |
 | RevenueCat Setup | 3-4 days | ⏳ Blocked (Play Console) |
 | **Feature Batch 1** | **2 days** | ✅ **Complete** |
+| **Feature Batch 2** | **3 days** | ✅ **Complete** |
+| UI Polish | 1-2 weeks | ⏳ Next |
 | iOS Build | 2-3 days | 🔜 Soon |
-| UI Polish | 1-2 weeks | 🔜 Soon |
+| RevenueCat Testing | 3-4 days | ⏳ LOW PRIORITY |
 | Testing | 1 week | 🔜 Soon |
 | Store Submission | 1 week | 🔜 Soon |
 
@@ -195,9 +213,9 @@ cd frontend && npm test -- --coverage
 
 ## Next 3 Steps
 
-1. **Batch 2 features** — reactive bankroll, global privacy mode, stats filters
-2. **Set up Google Play Console** ($25 fee) for purchase testing
-3. **iOS build** — `eas build --platform ios`
+1. **Stats page polish** — wire to global `PrivacyContext` + add `FilterChips`
+2. **Toast system** — replace `Alert.alert` calls with non-blocking toasts
+3. **Loading states** — skeleton loaders + error boundaries
 
 **For detailed documentation, see:**
 - [Next Phase.md](file:///c:/Users/USER/Desktop/Turn-Pro-Poker/Next%20Phase.md)

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { ScreenWrapper } from '../../components/ui/ScreenWrapper';
 import { PokerTable, SeatData } from '../../components/replayer/PokerTable';
 import { SeatModal } from '../../components/replayer/SeatModal';
@@ -7,6 +7,7 @@ import { ActionButtons, ActionType } from '../../components/replayer/ActionButto
 import { ActionHistory, ActionRecord } from '../../components/replayer/ActionHistory';
 import { PlaybackControls } from '../../components/replayer/PlaybackControls';
 import { COLORS } from '../../constants/theme';
+import { useToast } from '../../components/ui/ToastProvider';
 
 const POSITIONS = ['BTN', 'SB', 'BB', 'UTG', 'EP', 'MP', 'LJ', 'HJ', 'CO'];
 
@@ -48,6 +49,7 @@ export default function HandHistoriesScreen() {
 
     // Active seat for actions
     const [activeSeatIndex, setActiveSeatIndex] = useState(0);
+    const { showToast } = useToast();
 
     // --- Handlers ---
 
@@ -153,11 +155,11 @@ export default function HandHistoriesScreen() {
     }, [activeSeatIndex, seats]);
 
     const handleShare = useCallback(() => {
-        Alert.alert('Share', 'Hand sharing coming soon');
+        showToast('Hand sharing coming soon', 'info');
     }, []);
 
     const handlePlay = useCallback(() => {
-        Alert.alert('Play', 'Replay animation coming soon');
+        showToast('Replay animation coming soon', 'info');
     }, []);
 
     const handlePrev = useCallback(() => {

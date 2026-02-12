@@ -20,10 +20,12 @@ import { Q } from '@nozbe/watermelondb';
 import { COLORS, GRADIENTS } from '../../../constants/theme';
 import { ScreenWrapper } from '../../../components/ui/ScreenWrapper';
 import { usePrivacy } from '../../../contexts/PrivacyContext';
+import { useToast } from '../../../components/ui/ToastProvider';
 
 export default function TransactionsScreen() {
     const router = useRouter();
     const { privacyMode } = usePrivacy();
+    const { showToast } = useToast();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -65,7 +67,7 @@ export default function TransactionsScreen() {
         if (!editingTransaction) return;
         const num = parseFloat(amount);
         if (isNaN(num) || num <= 0) {
-            Alert.alert('Invalid Amount', 'Please enter a valid positive amount.');
+            showToast('Please enter a valid positive amount.', 'error');
             return;
         }
         await database.write(async () => {

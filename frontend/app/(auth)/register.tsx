@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { api } from '../../services/api';
 import qs from 'qs';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../components/ui/ToastProvider';
 
 export default function Register() {
     const [email, setEmail] = useState('');
@@ -12,10 +13,11 @@ export default function Register() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const { signIn } = useAuth(); // To auto-login after register if desired
+    const { showToast } = useToast();
 
     const handleRegister = async () => {
         if (!email || !password || !displayName) {
-            Alert.alert('Error', 'Please fill in all fields');
+            showToast('Please fill in all fields', 'error');
             return;
         }
 
@@ -43,7 +45,7 @@ export default function Register() {
 
         } catch (error: any) {
             console.log(error);
-            Alert.alert('Registration Failed', error.response?.data?.detail || 'An error occurred');
+            showToast(error.response?.data?.detail || 'An error occurred', 'error');
         } finally {
             setLoading(false);
         }

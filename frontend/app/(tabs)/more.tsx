@@ -6,10 +6,12 @@ import { useSubscription } from '../../contexts/SubscriptionContext';
 import { COLORS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenWrapper } from '../../components/ui/ScreenWrapper';
+import { useToast } from '../../components/ui/ToastProvider';
 
 export default function MoreScreen() {
     const router = useRouter();
     const [isExporting, setIsExporting] = useState(false);
+    const { showToast } = useToast();
 
     // Safe context access with fallbacks
     let user: any = null;
@@ -46,17 +48,17 @@ export default function MoreScreen() {
             const { exportSessionsCSV } = require('../../services/export');
             const result = await exportSessionsCSV();
             if (!result.success) {
-                Alert.alert('Export', result.error || 'Export failed.');
+                showToast(result.error || 'Export failed.', 'error');
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to export data.');
+            showToast('Failed to export data.', 'error');
         } finally {
             setIsExporting(false);
         }
     };
 
     const comingSoon = (feature: string) => {
-        Alert.alert(feature, 'This feature is coming soon!');
+        showToast(`${feature}: This feature is coming soon!`, 'info');
     };
 
     const handleSignOut = async () => {
@@ -73,7 +75,7 @@ export default function MoreScreen() {
                             if (signOut) await signOut();
                         } catch (error) {
                             console.error(error);
-                            Alert.alert('Error', 'Failed to sign out.');
+                            showToast('Failed to sign out.', 'error');
                         }
                     }
                 },
@@ -84,9 +86,9 @@ export default function MoreScreen() {
     const handleRestore = async () => {
         try {
             const { useSubscription: getSub } = require('../../contexts/SubscriptionContext');
-            Alert.alert('Restore', 'Restore purchases is not available in development builds.');
+            showToast('Restore purchases is not available in development builds.', 'info');
         } catch (e) {
-            Alert.alert('Error', 'Could not restore purchases.');
+            showToast('Could not restore purchases.', 'error');
         }
     };
 

@@ -5,7 +5,6 @@ import {
     StyleSheet,
     TouchableOpacity,
     ScrollView,
-    Alert,
     ActivityIndicator,
     Platform,
     Image,
@@ -14,6 +13,7 @@ import {
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useToast } from '../components/ui/ToastProvider';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -32,10 +32,11 @@ export default function Paywall() {
     const { offerings, purchasePackage, isPro, restorePurchases, subscriptionTier } = useSubscription();
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const { showToast } = useToast();
 
     useEffect(() => {
         if (isPro) {
-            Alert.alert('Success', 'You have successfully subscribed!');
+            showToast('You have successfully subscribed!', 'success');
             router.back();
         }
     }, [isPro]);
@@ -44,10 +45,10 @@ export default function Paywall() {
         setLoading(true);
         try {
             await purchasePackage(pkg);
-            Alert.alert('Success!', 'Your subscription is now active. Enjoy premium features!');
+            showToast('Your subscription is now active. Enjoy premium features!', 'success');
         } catch (e: any) {
             if (!e.userCancelled) {
-                Alert.alert('Error', 'Purchase failed. Please try again.');
+                showToast('Purchase failed. Please try again.', 'error');
             }
         } finally {
             setLoading(false);
@@ -58,9 +59,9 @@ export default function Paywall() {
         setLoading(true);
         try {
             await restorePurchases();
-            Alert.alert('Restore', 'Purchases restored successfully.');
+            showToast('Purchases restored successfully.', 'success');
         } catch (e) {
-            Alert.alert('Error', 'Failed to restore purchases.');
+            showToast('Failed to restore purchases.', 'error');
         } finally {
             setLoading(false);
         }

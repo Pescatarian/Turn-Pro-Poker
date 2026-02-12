@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { database } from '../../../model';
 import Session from '../../../model/Session';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useToast } from '../../../components/ui/ToastProvider';
 // Note: You might need to install @react-native-community/datetimepicker if not already
 // Assuming standard text inputs for simpler implementation for now if picker is missing
 
 export default function NewSession() {
     const router = useRouter();
+    const { showToast } = useToast();
     const [gameType, setGameType] = useState('Holdem Cash');
     const [stakes, setStakes] = useState('1/2');
     const [smallBlind, setSmallBlind] = useState('1');
@@ -22,7 +24,7 @@ export default function NewSession() {
 
     const handleSave = async () => {
         if (!buyIn) {
-            Alert.alert('Error', 'Please enter buy-in amount');
+            showToast('Please enter buy-in amount', 'error');
             return;
         }
 
@@ -44,7 +46,7 @@ export default function NewSession() {
             router.back();
         } catch (e) {
             console.error(e);
-            Alert.alert('Error', 'Failed to create session');
+            showToast('Failed to create session', 'error');
         }
     };
 

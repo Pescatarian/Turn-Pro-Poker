@@ -1,183 +1,308 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, Dimensions } from 'react-native';
-import { withObservables } from '@nozbe/watermelondb/react';
-import { LineChart } from 'react-native-gifted-charts';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { database } from '../../model';
 import Session from '../../model/Session';
 import { Q } from '@nozbe/watermelondb';
+import { ScreenWrapper } from '../../components/ui/ScreenWrapper';
+import { GlassCard } from '../../components/ui/GlassCard';
+import { BankrollChart, ChartXAxisMode } from '../../components/dashboard/BankrollChart';
+import { FilterChips, TimeRange } from '../../components/dashboard/FilterChips';
+import { COLORS } from '../../constants/theme';
+import { usePrivacy } from '../../contexts/PrivacyContext';
+import { useSync } from '../../contexts/SyncContext';
+import { DashboardSkeleton } from '../../components/ui/SkeletonLoader';
 
-const screenWidth = Dimensions.get('window').width;
+export default function StatsScreen() {
+    const { privacyMode } = usePrivacy();
+    const { triggerSync } = useSync();
 
-const StatsScreen = ({ sessions }: { sessions: Session[] }) => {
-    const [privacyMode, setPrivacyMode] = useState(false);
+    // Filter state
+    const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('all');
+    const [selectedVenue, setSelectedVenue] = useState<string | null>(null);
+
+    // Chart x-axis
+    const [chartXAxisMode, setChartXAxisMode] = useState<ChartXAxisMode>('sessions');
+
+    // Data
+    const [sessions, setSessions] = useState<Session[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const getTimeRangeStart = useCallback((range: TimeRange): number | null => {
+        if (range === 'all') return null;
+        const now = new Date();
+        switch (range) {
+            case 'week': { const d = new Date(now); d.setDate(d.getDate() - 7); return d.getTime(); }
+            case 'month': { const d = new Date(now); d.setMonth(d.getMonth() - 1); return d.getTime(); }
+            case '3months': { const d = new Date(now); d.setMonth(d.getMonth() - 3); return d.getTime(); }
+            case 'year': { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); return d.getTime(); }
+            default: return null;
+        }
+    }, []);
+
+    const loadData = useCallback(async () => {
+        const conditions: any[] = [Q.sortBy('start_time', Q.asc)];
+        const timeStart = getTimeRangeStart(selectedTimeRange);
+        if (timeStart) conditions.push(Q.where('start_time', Q.gte(timeStart)));
+        if (selectedVenue) conditions.push(Q.where('location', selectedVenue));
+
+        const result = await database.collections
+            .get('sessions')
+            .query(...conditions)
+            .fetch() as Session[];
+        setSessions(result);
+        setLoading(false);
+    }, [selectedTimeRange, selectedVenue, getTimeRangeStart]);
+
+    useEffect(() => {
+        loadData();
+        const sub = database.collections.get('sessions').changes.subscribe(() => loadData());
+        return () => sub.unsubscribe();
+    }, [loadData]);
 
     const stats = useMemo(() => {
         let totalProfit = 0;
         let totalHours = 0;
-        const chartData = [];
-        let runningProfit = 0;
+        let tipsTotal = 0;
+        let expensesTotal = 0;
+        let winSessions = 0;
 
-        // Sort sessions by date just in case, though query should handle it
-        const sortedSessions = [...sessions].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-
-        for (const session of sortedSessions) {
-            totalProfit += session.profit;
-            totalHours += session.durationHours;
-            runningProfit += session.profit;
-
-            chartData.push({
-                value: runningProfit,
-                label: new Date(session.startTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-                dataPointText: privacyMode ? '***' : `$${runningProfit.toFixed(0)}`,
-            });
+        for (const s of sessions) {
+            totalProfit += s.profit;
+            totalHours += s.durationHours;
+            tipsTotal += s.tips || 0;
+            expensesTotal += s.expenses || 0;
+            if (s.profit > 0) winSessions++;
         }
+
+        const netProfit = totalProfit - tipsTotal - expensesTotal;
+        const avgBB = 2;
+        const handsPlayed = totalHours * 25;
 
         return {
             totalProfit,
+            netProfit,
             totalHours,
             hourlyRate: totalHours > 0 ? totalProfit / totalHours : 0,
-            chartData: chartData.length > 0 ? chartData : [{ value: 0, label: 'Start' }],
+            netHourlyRate: totalHours > 0 ? netProfit / totalHours : 0,
+            sessionsPlayed: sessions.length,
+            winRate: sessions.length > 0 ? (winSessions / sessions.length) * 100 : 0,
+            avgSessionLength: sessions.length > 0 ? totalHours / sessions.length : 0,
+            tips: tipsTotal,
+            expenses: expensesTotal,
+            winrateBB100: handsPlayed > 0 ? (totalProfit / avgBB) / (handsPlayed / 100) : 0,
+            netWinrateBB100: handsPlayed > 0 ? (netProfit / avgBB) / (handsPlayed / 100) : 0,
         };
-    }, [sessions, privacyMode]);
+    }, [sessions]);
 
-    const formatCurrency = (value: number) => {
-        if (privacyMode) return '****';
-        return `$${value.toFixed(2)}`;
+    // Chart data
+    const { chartData, netChartData } = useMemo(() => {
+        let runningTotal = 0;
+        let runningNet = 0;
+        const cData: any[] = [{ value: 0, label: chartXAxisMode === 'sessions' ? 'S0' : chartXAxisMode === 'hours' ? '0h' : '0' }];
+        const nData: any[] = [{ value: 0 }];
+        let cumulativeHours = 0;
+
+        sessions.forEach((s, i) => {
+            runningTotal += s.profit;
+            runningNet += s.profit - (s.tips || 0) - (s.expenses || 0);
+            cumulativeHours += s.durationHours;
+
+            let label: string;
+            if (chartXAxisMode === 'sessions') label = `S${i + 1}`;
+            else if (chartXAxisMode === 'hours') label = `${cumulativeHours.toFixed(0)}h`;
+            else label = `${Math.round(cumulativeHours * 25)}`;
+
+            cData.push({ value: runningTotal, label });
+            nData.push({ value: runningNet });
+        });
+
+        return { chartData: cData, netChartData: nData };
+    }, [sessions, chartXAxisMode]);
+
+    const toggleChartXAxis = useCallback(() => {
+        setChartXAxisMode(prev => {
+            if (prev === 'sessions') return 'hours';
+            if (prev === 'hours') return 'hands';
+            return 'sessions';
+        });
+    }, []);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await Promise.all([loadData(), triggerSync()]);
+        setRefreshing(false);
     };
 
-    return (
-        <ScrollView style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.title}>Performance</Text>
-                <View style={styles.privacyContainer}>
-                    <Text style={styles.privacyLabel}>Privacy Mode</Text>
-                    <Switch
-                        value={privacyMode}
-                        onValueChange={setPrivacyMode}
-                        trackColor={{ false: '#767577', true: '#e94560' }}
-                        thumbColor={privacyMode ? '#fff' : '#f4f3f4'}
-                    />
-                </View>
-            </View>
+    const fmtVal = (value: number, prefix = '$', decimals = 0) => {
+        if (privacyMode) return '••••';
+        return `${prefix}${value.toFixed(decimals)}`;
+    };
 
-            <View style={styles.card}>
-                <Text style={styles.cardTitle}>Total Profit</Text>
-                <Text style={[styles.profitValue, { color: stats.totalProfit >= 0 ? '#4caf50' : '#ff5252' }]}>
-                    {formatCurrency(stats.totalProfit)}
-                </Text>
-            </View>
+    const fmtBB = (value: number) => {
+        if (privacyMode) return '••••';
+        return `${value.toFixed(1)}`;
+    };
 
-            <View style={styles.row}>
-                <View style={[styles.card, styles.halfCard]}>
-                    <Text style={styles.cardTitle}>Hourly Rate</Text>
-                    <Text style={styles.statValue}>{formatCurrency(stats.hourlyRate)}/hr</Text>
-                </View>
-                <View style={[styles.card, styles.halfCard]}>
-                    <Text style={styles.cardTitle}>Total Hours</Text>
-                    <Text style={styles.statValue}>{stats.totalHours.toFixed(1)} hrs</Text>
-                </View>
-            </View>
-
-            <View style={styles.chartContainer}>
-                <Text style={styles.chartTitle}>Bankroll Trend</Text>
-                <LineChart
-                    data={stats.chartData}
-                    height={220}
-                    width={screenWidth - 40}
-                    initialSpacing={10}
-                    color="#e94560"
-                    thickness={3}
-                    startFillColor="rgba(233, 69, 96, 0.3)"
-                    endFillColor="rgba(233, 69, 96, 0.01)"
-                    startOpacity={0.9}
-                    endOpacity={0.2}
-                    areaChart
-                    yAxisTextStyle={{ color: '#ccc' }}
-                    xAxisLabelTextStyle={{ color: '#ccc', fontSize: 10 }}
-                    hideDataPoints={false}
-                    dataPointsColor="#e94560"
-                    textColor="#fff"
-                    textFontSize={10}
-                    hideRules
-                    yAxisColor="transparent"
-                    xAxisColor="#333"
-                />
-            </View>
-        </ScrollView>
+    const filterChipsElement = (
+        <FilterChips
+            selectedTimeRange={selectedTimeRange}
+            onTimeRangeChange={setSelectedTimeRange}
+            selectedVenue={selectedVenue}
+            onVenueChange={setSelectedVenue}
+        />
     );
-};
+
+    return (
+        <ScreenWrapper headerContent={filterChipsElement}>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.content}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />}
+                showsVerticalScrollIndicator={false}
+            >
+                {loading ? <DashboardSkeleton /> : <>
+                    {/* Page Title */}
+                    <Text style={styles.pageTitle}>Performance</Text>
+
+                    {/* Chart — hidden in privacy mode */}
+                    {!privacyMode && (
+                        <BankrollChart
+                            data={chartData}
+                            netData={netChartData}
+                            xAxisMode={chartXAxisMode}
+                            onToggleXAxis={toggleChartXAxis}
+                        />
+                    )}
+
+                    {/* Stats Row 1: Profit | $/hr | Winrate */}
+                    <GlassCard style={styles.statsCard}>
+                        <View style={styles.statsRowInner}>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Total Profit</Text>
+                                <Text style={[styles.statValue, { color: privacyMode ? COLORS.muted : (stats.totalProfit >= 0 ? COLORS.chartGold : COLORS.danger) }]}>
+                                    {fmtVal(stats.totalProfit)}
+                                </Text>
+                                <Text style={[styles.statSub, { color: privacyMode ? COLORS.muted : (stats.netProfit >= 0 ? COLORS.accent : COLORS.danger) }]}>
+                                    Net {fmtVal(stats.netProfit)}
+                                </Text>
+                            </View>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>$/Hour</Text>
+                                <Text style={[styles.statValue, { color: privacyMode ? COLORS.muted : (stats.hourlyRate >= 0 ? COLORS.chartGold : COLORS.danger) }]}>
+                                    {fmtVal(stats.hourlyRate, '$', 1)}
+                                </Text>
+                                <Text style={[styles.statSub, { color: privacyMode ? COLORS.muted : (stats.netHourlyRate >= 0 ? COLORS.accent : COLORS.danger) }]}>
+                                    Net {fmtVal(stats.netHourlyRate, '$', 1)}
+                                </Text>
+                            </View>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Winrate</Text>
+                                <Text style={[styles.statValue, { color: privacyMode ? COLORS.muted : (stats.winrateBB100 >= 0 ? COLORS.chartGold : COLORS.danger) }]}>
+                                    {fmtBB(stats.winrateBB100)}
+                                </Text>
+                                <Text style={[styles.statSub, { color: privacyMode ? COLORS.muted : (stats.netWinrateBB100 >= 0 ? COLORS.accent : COLORS.danger) }]}>
+                                    Net {fmtBB(stats.netWinrateBB100)}
+                                </Text>
+                            </View>
+                        </View>
+                    </GlassCard>
+
+                    {/* Stats Row 2: Sessions | Hours | Win % */}
+                    <GlassCard style={styles.statsCard}>
+                        <View style={styles.statsRowInner}>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Sessions</Text>
+                                <Text style={styles.statValue}>
+                                    {privacyMode ? '••••' : stats.sessionsPlayed}
+                                </Text>
+                            </View>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Hours</Text>
+                                <Text style={styles.statValue}>
+                                    {privacyMode ? '••••' : stats.totalHours.toFixed(1)}
+                                </Text>
+                            </View>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Win %</Text>
+                                <Text style={[styles.statValue, { color: privacyMode ? COLORS.muted : (stats.winRate >= 50 ? COLORS.accent : COLORS.danger) }]}>
+                                    {privacyMode ? '••••' : `${stats.winRate.toFixed(0)}%`}
+                                </Text>
+                            </View>
+                        </View>
+                    </GlassCard>
+
+                    {/* Stats Row 3: Avg Length | Tips | Expenses */}
+                    <GlassCard style={styles.statsCard}>
+                        <View style={styles.statsRowInner}>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Avg Length</Text>
+                                <Text style={styles.statValue}>
+                                    {privacyMode ? '••••' : `${stats.avgSessionLength.toFixed(1)}h`}
+                                </Text>
+                            </View>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Tips</Text>
+                                <Text style={[styles.statValue, { color: privacyMode ? COLORS.muted : COLORS.danger }]}>
+                                    {fmtVal(stats.tips)}
+                                </Text>
+                            </View>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Expenses</Text>
+                                <Text style={[styles.statValue, { color: privacyMode ? COLORS.muted : COLORS.danger }]}>
+                                    {fmtVal(stats.expenses)}
+                                </Text>
+                            </View>
+                        </View>
+                    </GlassCard>
+                </>}
+            </ScrollView>
+        </ScreenWrapper>
+    );
+}
 
 const styles = StyleSheet.create({
-    container: {
+    scrollView: {
         flex: 1,
-        backgroundColor: '#1a1a2e',
-        padding: 15,
     },
-    header: {
+    content: {
+        padding: 12,
+        paddingBottom: 80,
+    },
+    pageTitle: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: COLORS.text,
+        marginBottom: 12,
+    },
+    statsCard: {
+        padding: 14,
+        marginBottom: 8,
+    },
+    statsRowInner: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    statCol: {
+        flex: 1,
         alignItems: 'center',
-        marginBottom: 20,
+        paddingHorizontal: 2,
     },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    privacyContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    privacyLabel: {
-        color: '#ccc',
-        marginRight: 10,
-    },
-    card: {
-        backgroundColor: '#16213e',
-        padding: 20,
-        borderRadius: 12,
-        marginBottom: 15,
-        alignItems: 'center',
-    },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    halfCard: {
-        width: '48%',
-    },
-    cardTitle: {
-        color: '#888',
-        fontSize: 14,
-        marginBottom: 5,
-    },
-    profitValue: {
-        fontSize: 36,
-        fontWeight: 'bold',
+    statLabel: {
+        fontSize: 11,
+        color: COLORS.muted,
+        fontWeight: '400',
+        marginBottom: 6,
     },
     statValue: {
-        color: '#fff',
         fontSize: 20,
-        fontWeight: 'bold',
+        fontWeight: '600',
+        color: COLORS.text,
+        marginBottom: 2,
     },
-    chartContainer: {
-        backgroundColor: '#16213e',
-        padding: 15,
-        borderRadius: 12,
-        marginBottom: 30, // Extra space at bottom
-        alignItems: 'center',
-    },
-    chartTitle: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 15,
-        alignSelf: 'flex-start',
+    statSub: {
+        fontSize: 13,
+        fontWeight: '400',
+        marginTop: 4,
     },
 });
-
-const enhance = withObservables([], () => ({
-    sessions: database.collections.get('sessions').query(Q.sortBy('start_time', Q.asc)),
-}));
-
-export default enhance(StatsScreen);

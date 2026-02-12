@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { database } from '../../../model';
 import Session from '../../../model/Session';
 import { COLORS } from '../../../constants/theme';
 import { ScreenWrapper } from '../../../components/ui/ScreenWrapper';
 import { GlassCard } from '../../../components/ui/GlassCard';
+import { useToast } from '../../../components/ui/ToastProvider';
 
 export default function SessionDetailsPage() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
+    const { showToast } = useToast();
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
     const [cashOutAmount, setCashOutAmount] = useState('');
@@ -49,7 +51,7 @@ export default function SessionDetailsPage() {
             });
         } catch (e) {
             console.error(e);
-            Alert.alert('Error', 'Failed to update session');
+            showToast('Failed to update session', 'error');
         }
     };
 
@@ -80,7 +82,7 @@ export default function SessionDetailsPage() {
             <View style={styles.container}>
                 <GlassCard style={styles.card}>
                     <Text style={styles.header}>{session.gameType} - {session.stakes}</Text>
-                    <Text style={styles.subHeader}>{new Date(session.startTime).toLocaleString()}</Text>
+                    <Text style={styles.subHeader}>{new Date(session.startTime ?? Date.now()).toLocaleString()}</Text>
 
                     <View style={styles.statRow}>
                         <Text style={styles.label}>Buy-in</Text>

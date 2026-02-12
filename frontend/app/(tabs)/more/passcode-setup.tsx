@@ -5,6 +5,7 @@ import { ScreenWrapper } from '../../../components/ui/ScreenWrapper';
 import { GlassCard } from '../../../components/ui/GlassCard';
 import { COLORS } from '../../../constants/theme';
 import { usePasscodeLock, PASSCODE_LENGTH } from '../../../contexts/PasscodeLockContext';
+import { useToast } from '../../../components/ui/ToastProvider';
 import Svg, { Path } from 'react-native-svg';
 
 type SetupStep = 'enter' | 'confirm' | 'success';
@@ -32,6 +33,7 @@ const BackspaceIcon = () => (
 export default function PasscodeSetupScreen() {
     const router = useRouter();
     const { hasPasscode, setPasscode, removePasscode } = usePasscodeLock();
+    const { showToast } = useToast();
 
     const [step, setStep] = useState<SetupStep>('enter');
     const [firstPin, setFirstPin] = useState('');
@@ -79,7 +81,7 @@ export default function PasscodeSetupScreen() {
                 router.back();
             }, 1500);
         } catch (e) {
-            Alert.alert('Error', 'Failed to save passcode');
+            showToast('Failed to save passcode', 'error');
         }
     };
 

@@ -1,7 +1,7 @@
 # Turn Pro Poker - Development Roadmap
 
-> **📍 Current Status:** Phase 3 blocked on Play Console. Phase 5 Batch 1 complete (CSV export, session UX, swipe gestures).
-> **🎯 Next Priority:** Phase 5 Batch 2 (reactive bankroll, global privacy mode, stats filters) + Phase 3 purchase testing
+> **📍 Current Status:** Phase 5 Batch 1 & Batch 2 complete. Dashboard fully featured. More page built out.
+> **🎯 Next Priority:** UI polish (loading states, toast system, stats page filters) + remaining "coming soon" features
 
 ---
 
@@ -93,13 +93,15 @@
 - [x] Packages only display when available from RevenueCat
 - [x] Logo container matches features section styling (`#1a1a1a`, rounded corners)
 
-### Testing (Blocked on Play Console)
+### Testing (LOW PRIORITY — moved to end per user decision)
 - [x] Paywall UI accessible and functional
 - [x] Products visible in RevenueCat dashboard
 - [ ] Real purchase testing (requires Google Play Console — $25 fee)
 - [ ] iOS purchase testing (requires App Store Connect)
 
-**Deliverable:** ✅ RevenueCat configured, paywall redesigned. Purchase testing pending Play Console setup.
+> ⚠️ **Play Console setup is deliberately LOW PRIORITY.** Do not elevate this.
+
+**Deliverable:** ✅ RevenueCat configured, paywall redesigned. Purchase testing deferred.
 
 ---
 
@@ -118,31 +120,49 @@
 
 ---
 
-## Phase 5: UI Polish & Features 🔜
+## Phase 5: UI Polish & Features ⏳ **IN PROGRESS**
 **Duration:** 1-2 weeks  
 **Can parallelize:** With Phases 3-4
 
-### UI Polish
-- [ ] Glassmorphism effects (`expo-blur`)
-- [ ] Original prototype colors/gradients
-- [ ] Privacy mode toggle
-- [ ] Loading states + error handling
-- [ ] Toast notifications
-
-### Missing Features
-- [x] CSV/PDF export (CSV implemented via share sheet)
+### Batch 1 ✅ COMPLETE
+- [x] CSV export via native share sheet (`services/export.ts`)
 - [x] Location management UI (dropdown from session history)
-- [ ] Hand replayer animations
 - [x] Pull-to-refresh (working with sync)
-- [x] Swipe-to-delete/edit (gesture-based)
-- [x] Session form UX (native date picker, game type toggle)
+- [x] Swipe-to-delete/edit (gesture-based on session cards)
+- [x] Session form UX (native date picker, location dropdown, game type toggle)
 
-### Remaining Features (Batch 2)
-- [ ] Bankroll page: reactive WatermelonDB observables
-- [ ] Global privacy mode (shared context)
-- [ ] Stats filters (time-range, stakes)
+### Batch 2 ✅ COMPLETE
+- [x] Dashboard filters: time-range (week/month/3mo/year/all) + venue filtering (`FilterChips`)
+- [x] Global privacy mode (`PrivacyContext`) — used in dashboard, transactions, BankrollModal
+- [x] BankrollChart: multi-series (Won + Net Profit), x-axis toggle (sessions/hours/hands), tooltips
+- [x] BankrollModal: deposit/withdraw forms, view transactions link
+- [x] Transactions page: full CRUD (add/edit/delete), privacy-aware
+- [x] Passcode Lock: 4-digit setup, auto-lock on app background, verify on resume
+- [x] SessionModalContext: shared add/edit session modal state
+- [x] More page: profile card, features menu, settings section, premium upgrade banner
 
-**Deliverable:** ✅ Polished UI matching prototype
+### UI Polish (Already Done)
+- [x] GlassCard with BlurView (used in dashboard, sessions, coach, passcode, BankrollChart)
+- [x] ScreenWrapper component (consistent screen layout)
+- [x] Theme system (`constants/theme.ts`) with COLORS, GRADIENTS, FONTS
+- [x] Dashboard styling finalized (shadow-halo fix, stat card values 20px/fw600)
+
+### UI Polish (Remaining)
+- [ ] Stats page: wire to global `PrivacyContext` (currently uses local state)
+- [ ] Stats page: add time-range + venue filters (dashboard has them, stats does not)
+- [ ] Loading states + skeleton loaders (currently none exist)
+- [ ] Toast notifications (currently 36 `Alert.alert` calls, no toast system)
+- [ ] Error boundaries (currently none exist)
+- [ ] Hand replayer animations (Share/Play buttons show "coming soon")
+
+### More Page — "Coming Soon" Items
+- [ ] Player Profiles
+- [ ] Locations management page
+- [ ] Notepad
+- [ ] Calendar view
+- [ ] PDF Export
+
+**Deliverable:** Polished UI matching prototype
 
 ---
 
@@ -198,20 +218,48 @@
 
 ## What's Already Complete ✅
 
-- Backend API (auth, sessions, sync endpoints)
-- Frontend app (all core screens)
-- WatermelonDB offline data layer
-- Android development build (with EAS Update support)
-- **EAS Update configured** - instant code updates
-- **In-app backend configuration** - no rebuilds for URL changes
-- **Hot-reload development workflow** - 30-second updates
-- RevenueCat SDK integration + configuration
-- **Paywall UI redesigned** with Turn Pro logo branding
-- **CSV export** via native share sheet
-- **Session form UX** with native date picker, location dropdown, game type toggle
-- **Swipe gestures** on session cards (delete/edit)
-- **Location management** (auto-populated from session history)
-- Basic test suites (11/11 passing)
+### Infrastructure
+- Backend API (auth, sessions, sync endpoints) on Render.com
+- WatermelonDB offline data layer with sync
+- Android development build (EAS Update support)
+- EAS Update configured — instant OTA code updates (~30 sec)
+- In-app backend URL configuration (gear icon on login)
+- RevenueCat SDK + paywall UI with Turn Pro logo
+
+### Dashboard
+- Bankroll hero with privacy toggle (eye icon)
+- BankrollChart (multi-series: Won + Net Profit, x-axis toggle: sessions/hours/hands)
+- FilterChips (time-range: week/month/3mo/year/all + venue filter)
+- BankrollModal (deposit/withdraw + view transactions)
+- GlassCard stat rows (3 rows: profit/$/hr/winrate, sessions/hours/avg, tips/expenses)
+- Pull-to-refresh with sync
+
+### Sessions
+- Session cards with swipe-to-delete/edit gestures
+- Session form with native date picker, location dropdown, game type toggle
+- Session detail/edit page
+- GlassCard styling with BlurView
+
+### More Page
+- Profile card with email + plan display
+- Transactions page (full CRUD: add/edit/delete)
+- Passcode Lock (4-digit, auto-lock on background)
+- CSV Export via share sheet
+- Premium upgrade banner → paywall
+- Sign out with confirmation
+
+### Global Features
+- PrivacyContext: global privacy mode (dashboard, transactions, BankrollModal)
+- AuthContext, SyncContext, SubscriptionContext, ApiConfigContext
+- SessionModalContext: shared add/edit modal state
+- ScreenWrapper: consistent layout across screens
+- Theme system (COLORS, GRADIENTS, FONTS)
+
+### Hands Tab
+- Full replayer UI (9-seat poker table, card picker, suit picker)
+- Action buttons (Fold/Check/Call/Bet/Raise)
+- Action history pills
+- Playback controls (Share, Play, ←/→ navigation)
 
 ---
 

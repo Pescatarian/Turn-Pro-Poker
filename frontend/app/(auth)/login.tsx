@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { ApiSettingsModal } from '../../components/ApiSettingsModal';
 import { useApiConfig } from '../../contexts/ApiConfigContext';
+import { useToast } from '../../components/ui/ToastProvider';
 import qs from 'qs'; // Ensure you have qs or use URLSearchParams if compatible with Expo's environment
 
 
@@ -16,12 +17,13 @@ export default function Login() {
     const { signIn } = useAuth();
     const { apiBaseUrl } = useApiConfig();
     const router = useRouter();
+    const { showToast } = useToast();
 
 
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Please enter both email and password');
+            showToast('Please enter both email and password', 'error');
             return;
         }
 
@@ -58,7 +60,7 @@ export default function Login() {
                 errorMessage = error.response.data.detail;
             }
 
-            Alert.alert('Login Failed', errorMessage);
+            showToast(errorMessage, 'error');
         } finally {
             setLoading(false);
         }

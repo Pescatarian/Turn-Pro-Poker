@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, Alert, ScrollView, Platform, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, Alert, ScrollView, Platform, Animated, KeyboardAvoidingView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { database } from '../../../model';
 import Session from '../../../model/Session';
@@ -14,6 +14,7 @@ import { useSessionModal } from '../../../contexts/SessionModalContext';
 import { useLocations } from '../../../hooks/useLocations';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useToast } from '../../../components/ui/ToastProvider';
 
 interface SessionFormData {
     date: string;
@@ -52,7 +53,7 @@ const SessionCardComponent = ({
     onRemove: () => void;
 }) => {
     const swipeableRef = useRef<Swipeable>(null);
-    const date = new Date(session.startTime);
+    const date = new Date(session.startTime ?? Date.now());
     const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
     const renderRightActions = (
@@ -254,6 +255,7 @@ const SessionsPage = ({ sessions }: { sessions: Session[] }) => {
     const [editingSession, setEditingSession] = useState<Session | null>(null);
     const [form, setForm] = useState<SessionFormData>(emptyForm);
     const savedLocations = useLocations();
+    const { showToast } = useToast();
 
     // Date picker state
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -265,7 +267,7 @@ const SessionsPage = ({ sessions }: { sessions: Session[] }) => {
             const session = sessions.find(s => s.id === editingSessionId);
             if (session) {
                 setEditingSession(session);
-                const d = new Date(session.startTime);
+                const d = new Date(session.startTime ?? Date.now());
                 setSelectedDate(d);
                 setForm({
                     date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
@@ -309,7 +311,7 @@ const SessionsPage = ({ sessions }: { sessions: Session[] }) => {
                 if (Platform.OS === 'web') {
                     window.alert('Failed to delete session');
                 } else {
-                    Alert.alert('Error', 'Failed to delete session');
+                    showToast('Failed to delete session', 'error');
                 }
             }
         };
@@ -384,7 +386,7 @@ const SessionsPage = ({ sessions }: { sessions: Session[] }) => {
             closeModal();
         } catch (e) {
             console.error(e);
-            Alert.alert('Error', 'Failed to save session');
+            showToast('Failed to save session', 'error');
         }
     };
 
@@ -444,7 +446,10 @@ const SessionsPage = ({ sessions }: { sessions: Session[] }) => {
                         transparent
                         onRequestClose={closeModal}
                     >
-                        <View style={styles.modalBackdrop}>
+                        <KeyboardAvoidingView
+                            style={styles.modalBackdrop}
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        >
                             <View style={styles.modal}>
                                 <Text style={styles.modalTitle}>
                                     {editingSession ? 'Edit Session' : 'Add Session'}
@@ -609,7 +614,7 @@ const SessionsPage = ({ sessions }: { sessions: Session[] }) => {
                                     </TouchableOpacity>
                                 </View>
                             </View>
-                        </View>
+                        </KeyboardAvoidingView>
                     </Modal>
                 </View>
             </ScreenWrapper>

@@ -5,6 +5,8 @@ import Session from '../../model/Session';
 import Transaction from '../../model/Transaction';
 import { Q } from '@nozbe/watermelondb';
 import { LineChart } from 'react-native-gifted-charts';
+import { useToast } from '../../components/ui/ToastProvider';
+import { DashboardSkeleton } from '../../components/ui/SkeletonLoader';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -15,6 +17,8 @@ const BankrollScreen = () => {
     const [amount, setAmount] = useState('');
     const [type, setType] = useState<'deposit' | 'withdrawal'>('deposit');
     const [notes, setNotes] = useState('');
+    const { showToast } = useToast();
+    const [loading, setLoading] = useState(true);
 
     const loadData = async () => {
         try {
@@ -22,6 +26,7 @@ const BankrollScreen = () => {
             const t = await database.collections.get('transactions').query(Q.sortBy('created_at', Q.asc)).fetch() as Transaction[];
             setSessions(s);
             setTransactions(t);
+            setLoading(false);
         } catch (error) {
             console.error('Failed to load bankroll data:', error);
         }
@@ -46,7 +51,7 @@ const BankrollScreen = () => {
         ];
 
         // Sort by date
-        events.sort((a, b) => a.date.getTime() - b.date.getTime());
+        events.sort((a, b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0));
 
         let currentBankroll = 0;
         const chartData = [];
@@ -55,7 +60,7 @@ const BankrollScreen = () => {
             currentBankroll += event.amount;
             chartData.push({
                 value: currentBankroll,
-                label: event.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                label: event.date?.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) ?? '',
                 dataPointText: `$${currentBankroll.toFixed(0)}`,
                 hideDataPoint: true, // Hide points to reduce clutter if many events
             });
@@ -71,7 +76,7 @@ const BankrollScreen = () => {
 
     const handleAddTransaction = async () => {
         if (!amount || isNaN(parseFloat(amount))) {
-            Alert.alert('Invalid Amount', 'Please enter a valid number.');
+            showToast('Please enter a valid number.', 'error');
             return;
         }
 
@@ -87,10 +92,10 @@ const BankrollScreen = () => {
             setModalVisible(false);
             setAmount('');
             setNotes('');
-            Alert.alert('Success', 'Transaction added successfully.');
+            showToast('Transaction added successfully.', 'success');
         } catch (error) {
             console.error(error);
-            Alert.alert('Error', 'Failed to add transaction.');
+            showToast('Failed to add transaction.', 'error');
         }
     };
 
@@ -105,6 +110,14 @@ const BankrollScreen = () => {
             </Text>
         </View>
     );
+
+    if (loading) {
+        return (
+            <View style={styles.container}>
+                <DashboardSkeleton />
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -145,7 +158,7 @@ const BankrollScreen = () => {
                 {combinedData.events.map(item => (
                     <View key={item.id} style={styles.item}>
                         <View>
-                            <Text style={styles.date}>{item.date.toLocaleDateString()}</Text>
+                            <Text style={styles.date}>{item.date?.toLocaleDateString() ?? ''}</Text>
                             <Text style={styles.type}>{item.type === 'session' ? 'Poker Session' : (item.amount > 0 ? 'Deposit' : 'Withdrawal')}</Text>
                         </View>
                         <Text style={[styles.amount, { color: item.amount >= 0 ? '#4caf50' : '#ff5252' }]}>

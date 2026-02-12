@@ -15,12 +15,14 @@ import { BankrollChart, ChartXAxisMode } from '../../components/dashboard/Bankro
 import { BankrollModal } from '../../components/dashboard/BankrollModal';
 import { FilterChips, TimeRange } from '../../components/dashboard/FilterChips';
 import { usePrivacy } from '../../contexts/PrivacyContext';
+import { DashboardSkeleton } from '../../components/ui/SkeletonLoader';
 
 export default function Dashboard() {
     const { user } = useAuth();
     const { triggerSync } = useSync();
     const router = useRouter();
     const { privacyMode, togglePrivacy } = usePrivacy();
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [chartXAxisMode, setChartXAxisMode] = useState<ChartXAxisMode>('sessions');
     const [bankrollModalVisible, setBankrollModalVisible] = useState(false);
@@ -178,6 +180,7 @@ export default function Dashboard() {
         }
 
         buildChartData(sessions, chartXAxisMode);
+        setLoading(false);
     }, [selectedTimeRange, selectedVenue, chartXAxisMode, buildChartData, getTimeRangeStart, loadBankroll]);
 
     useEffect(() => {
@@ -242,119 +245,125 @@ export default function Dashboard() {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Bankroll Hero */}
-                <TouchableOpacity style={styles.bankrollHero} onPress={() => setBankrollModalVisible(true)} activeOpacity={0.7}>
-                    <View style={styles.bankrollLabelRow}>
-                        <Text style={styles.bankrollLabel}>My Bankroll</Text>
-                        <TouchableOpacity onPress={togglePrivacy} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                            <Ionicons
-                                name={privacyMode ? 'eye-off-outline' : 'eye-outline'}
-                                size={14}
-                                color={COLORS.muted}
-                            />
-                        </TouchableOpacity>
-                    </View>
-                    <Text style={styles.bankrollValue}>
-                        {privacyMode ? '••••••' : `$${currentBankrollDisplay.toLocaleString()}`}
-                    </Text>
-                    <View style={styles.bankrollChangeRow}>
-                        <Text style={[styles.bankrollChange, { color: bankrollChange >= 0 ? COLORS.accent : COLORS.danger }]}>
-                            {bankrollChange >= 0 ? '↗' : '↘'} {privacyMode ? '••••' : `${bankrollChange >= 0 ? '+' : ''}$${bankrollChange.toFixed(0)}`}
+                {loading ? <DashboardSkeleton /> : <>
+                    {/* Bankroll Hero */}
+                    <TouchableOpacity style={styles.bankrollHero} onPress={() => setBankrollModalVisible(true)} activeOpacity={0.7}>
+                        <View style={styles.bankrollLabelRow}>
+                            <Text style={styles.bankrollLabel}>My Bankroll</Text>
+                            <TouchableOpacity onPress={togglePrivacy} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
+                                <Ionicons
+                                    name={privacyMode ? 'eye-off-outline' : 'eye-outline'}
+                                    size={18}
+                                    color={COLORS.muted}
+                                />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.bankrollValue}>
+                            {privacyMode ? '••••••' : `$${currentBankrollDisplay.toLocaleString()}`}
                         </Text>
-                        <Text style={[styles.bankrollTrend, { color: bankrollTrend >= 0 ? COLORS.accent : COLORS.danger }]}>
-                            {privacyMode ? '••••' : `${bankrollTrend >= 0 ? '+' : ''}${bankrollTrend.toFixed(1)}%`}
-                        </Text>
-                    </View>
-                </TouchableOpacity>
+                        {!privacyMode && (
+                            <View style={styles.bankrollChangeRow}>
+                                <Text style={[styles.bankrollChange, { color: bankrollChange >= 0 ? COLORS.accent : COLORS.danger }]}>
+                                    {bankrollChange >= 0 ? '↗' : '↘'} {`${bankrollChange >= 0 ? '+' : ''}$${bankrollChange.toFixed(0)}`}
+                                </Text>
+                                <Text style={[styles.bankrollTrend, { color: bankrollTrend >= 0 ? COLORS.accent : COLORS.danger }]}>
+                                    {`${bankrollTrend >= 0 ? '+' : ''}${bankrollTrend.toFixed(1)}%`}
+                                </Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
 
-                {/* Chart */}
-                <BankrollChart
-                    data={chartData}
-                    netData={netChartData}
-                    xAxisMode={chartXAxisMode}
-                    onToggleXAxis={toggleChartXAxis}
-                />
+                    {/* Chart — hidden in privacy mode */}
+                    {!privacyMode && (
+                        <BankrollChart
+                            data={chartData}
+                            netData={netChartData}
+                            xAxisMode={chartXAxisMode}
+                            onToggleXAxis={toggleChartXAxis}
+                        />
+                    )}
 
-                {/* Stats Row 1: Profit | $/hr | Winrate */}
-                <GlassCard style={styles.statsCard}>
-                    <View style={styles.statsRowInner}>
-                        <View style={styles.statCol}>
-                            <Text style={styles.statLabel}>Total Profit</Text>
-                            <Text style={[styles.statValue, { color: totalProfit >= 0 ? COLORS.chartGold : COLORS.danger }]}>
-                                {fmtVal(totalProfit)}
-                            </Text>
-                            <Text style={[styles.statSub, { color: netProfit >= 0 ? COLORS.accent : COLORS.danger }]}>
-                                Net {fmtVal(netProfit)}
-                            </Text>
+                    {/* Stats Row 1: Profit | $/hr | Winrate */}
+                    <GlassCard style={styles.statsCard}>
+                        <View style={styles.statsRowInner}>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Total Profit</Text>
+                                <Text style={[styles.statValue, { color: privacyMode ? COLORS.muted : (totalProfit >= 0 ? COLORS.chartGold : COLORS.danger) }]}>
+                                    {fmtVal(totalProfit)}
+                                </Text>
+                                <Text style={[styles.statSub, { color: privacyMode ? COLORS.muted : (netProfit >= 0 ? COLORS.accent : COLORS.danger) }]}>
+                                    Net {fmtVal(netProfit)}
+                                </Text>
+                            </View>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>$/Hour</Text>
+                                <Text style={[styles.statValue, { color: privacyMode ? COLORS.muted : (dollarPerHour >= 0 ? COLORS.chartGold : COLORS.danger) }]}>
+                                    {fmtVal(dollarPerHour, '$', 1)}
+                                </Text>
+                                <Text style={[styles.statSub, { color: privacyMode ? COLORS.muted : (netDollarPerHour >= 0 ? COLORS.accent : COLORS.danger) }]}>
+                                    Net {fmtVal(netDollarPerHour, '$', 1)}
+                                </Text>
+                            </View>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Winrate</Text>
+                                <Text style={[styles.statValue, { color: privacyMode ? COLORS.muted : (winrateBB100 >= 0 ? COLORS.chartGold : COLORS.danger) }]}>
+                                    {fmtBB(winrateBB100)}
+                                </Text>
+                                <Text style={[styles.statSub, { color: privacyMode ? COLORS.muted : (netWinrateBB100 >= 0 ? COLORS.accent : COLORS.danger) }]}>
+                                    Net {fmtBB(netWinrateBB100)}
+                                </Text>
+                            </View>
                         </View>
-                        <View style={styles.statCol}>
-                            <Text style={styles.statLabel}>$/Hour</Text>
-                            <Text style={[styles.statValue, { color: dollarPerHour >= 0 ? COLORS.chartGold : COLORS.danger }]}>
-                                {fmtVal(dollarPerHour, '$', 1)}
-                            </Text>
-                            <Text style={[styles.statSub, { color: netDollarPerHour >= 0 ? COLORS.accent : COLORS.danger }]}>
-                                Net {fmtVal(netDollarPerHour, '$', 1)}
-                            </Text>
-                        </View>
-                        <View style={styles.statCol}>
-                            <Text style={styles.statLabel}>Winrate</Text>
-                            <Text style={[styles.statValue, { color: winrateBB100 >= 0 ? COLORS.chartGold : COLORS.danger }]}>
-                                {fmtBB(winrateBB100)}
-                            </Text>
-                            <Text style={[styles.statSub, { color: netWinrateBB100 >= 0 ? COLORS.accent : COLORS.danger }]}>
-                                Net {fmtBB(netWinrateBB100)}
-                            </Text>
-                        </View>
-                    </View>
-                </GlassCard>
+                    </GlassCard>
 
-                {/* Stats Row 2: Sessions | Hours | Avg Length */}
-                <GlassCard style={styles.statsCard}>
-                    <View style={styles.statsRowInner}>
-                        <View style={styles.statCol}>
-                            <Text style={styles.statLabel}>Sessions</Text>
-                            <Text style={styles.statValue}>
-                                {privacyMode ? '••••' : sessionsPlayed}
-                            </Text>
+                    {/* Stats Row 2: Sessions | Hours | Avg Length */}
+                    <GlassCard style={styles.statsCard}>
+                        <View style={styles.statsRowInner}>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Sessions</Text>
+                                <Text style={styles.statValue}>
+                                    {privacyMode ? '••••' : sessionsPlayed}
+                                </Text>
+                            </View>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Hours</Text>
+                                <Text style={styles.statValue}>
+                                    {privacyMode ? '••••' : hoursPlayed.toFixed(1)}
+                                </Text>
+                            </View>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Avg Length</Text>
+                                <Text style={styles.statValue}>
+                                    {privacyMode ? '••••' : `${avgSessionLength.toFixed(1)}h`}
+                                </Text>
+                            </View>
                         </View>
-                        <View style={styles.statCol}>
-                            <Text style={styles.statLabel}>Hours</Text>
-                            <Text style={styles.statValue}>
-                                {privacyMode ? '••••' : hoursPlayed.toFixed(1)}
-                            </Text>
-                        </View>
-                        <View style={styles.statCol}>
-                            <Text style={styles.statLabel}>Avg Length</Text>
-                            <Text style={styles.statValue}>
-                                {privacyMode ? '••••' : `${avgSessionLength.toFixed(1)}h`}
-                            </Text>
-                        </View>
-                    </View>
-                </GlassCard>
+                    </GlassCard>
 
-                {/* Stats Row 3: Tips | Expenses */}
-                <GlassCard style={styles.statsCard}>
-                    <View style={styles.statsRowInner}>
-                        <View style={styles.statCol}>
-                            <Text style={styles.statLabel}>Tips</Text>
-                            <Text style={[styles.statValue, { color: COLORS.danger }]}>
-                                {fmtVal(tips)}
-                            </Text>
-                            <Text style={[styles.statSub, { color: COLORS.danger }]}>
-                                {privacyMode ? '••••' : `${tipsBB100.toFixed(1)} bb/100`}
-                            </Text>
+                    {/* Stats Row 3: Tips | Expenses */}
+                    <GlassCard style={styles.statsCard}>
+                        <View style={styles.statsRowInner}>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Tips</Text>
+                                <Text style={[styles.statValue, { color: privacyMode ? COLORS.muted : COLORS.danger }]}>
+                                    {fmtVal(tips)}
+                                </Text>
+                                <Text style={[styles.statSub, { color: privacyMode ? COLORS.muted : COLORS.danger }]}>
+                                    {privacyMode ? '••••' : `${tipsBB100.toFixed(1)} bb/100`}
+                                </Text>
+                            </View>
+                            <View style={styles.statCol}>
+                                <Text style={styles.statLabel}>Expenses</Text>
+                                <Text style={[styles.statValue, { color: privacyMode ? COLORS.muted : COLORS.danger }]}>
+                                    {fmtVal(expenses)}
+                                </Text>
+                                <Text style={[styles.statSub, { color: privacyMode ? COLORS.muted : COLORS.danger }]}>
+                                    {privacyMode ? '••••' : `${expensesBB100.toFixed(1)} bb/100`}
+                                </Text>
+                            </View>
                         </View>
-                        <View style={styles.statCol}>
-                            <Text style={styles.statLabel}>Expenses</Text>
-                            <Text style={[styles.statValue, { color: COLORS.danger }]}>
-                                {fmtVal(expenses)}
-                            </Text>
-                            <Text style={[styles.statSub, { color: COLORS.danger }]}>
-                                {privacyMode ? '••••' : `${expensesBB100.toFixed(1)} bb/100`}
-                            </Text>
-                        </View>
-                    </View>
-                </GlassCard>
+                    </GlassCard>
+                </>}
             </ScrollView>
 
             {/* Bankroll Modal */}
@@ -386,11 +395,11 @@ const styles = StyleSheet.create({
     bankrollLabelRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 8,
         marginBottom: 4,
     },
     bankrollLabel: {
-        fontSize: 12,
+        fontSize: 14,
         color: COLORS.muted,
         fontWeight: '600',
     },

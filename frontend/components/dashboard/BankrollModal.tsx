@@ -6,7 +6,6 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    Alert,
     KeyboardAvoidingView,
     Platform,
     AppState,
@@ -19,6 +18,7 @@ import { database } from '../../model';
 import { Q } from '@nozbe/watermelondb';
 import { COLORS, GRADIENTS } from '../../constants/theme';
 import { usePrivacy } from '../../contexts/PrivacyContext';
+import { useToast } from '../ui/ToastProvider';
 
 type ModalView = 'menu' | 'form';
 
@@ -32,6 +32,7 @@ interface BankrollModalProps {
 export function BankrollModal({ visible, onClose, currentBankroll, onTransactionSaved }: BankrollModalProps) {
     const { privacyMode } = usePrivacy();
     const router = useRouter();
+    const { showToast } = useToast();
     const [view, setView] = useState<ModalView>('menu');
     const [transactionType, setTransactionType] = useState<'deposit' | 'withdrawal'>('deposit');
     const [amount, setAmount] = useState('');
@@ -67,7 +68,7 @@ export function BankrollModal({ visible, onClose, currentBankroll, onTransaction
     const handleSave = async () => {
         const num = parseFloat(amount);
         if (isNaN(num) || num <= 0) {
-            Alert.alert('Invalid Amount', 'Please enter a valid positive amount.');
+            showToast('Please enter a valid positive amount.', 'error');
             return;
         }
 

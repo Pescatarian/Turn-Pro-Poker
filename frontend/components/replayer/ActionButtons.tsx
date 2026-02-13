@@ -5,29 +5,72 @@ export type ActionType = 'fold' | 'check' | 'call' | 'bet' | 'raise';
 
 interface ActionButtonsProps {
     onAction: (action: ActionType) => void;
+    /** Which actions should be shown/enabled */
+    canCheck: boolean;
+    canCall: boolean;
+    canBet: boolean;
+    canRaise: boolean;
+    callAmount?: number;
 }
 
-const ACTIONS: { type: ActionType; label: string; bg: string; color: string }[] = [
-    { type: 'fold', label: 'Fold', bg: '#6c757d', color: '#fff' },
-    { type: 'check', label: 'Check', bg: '#10b981', color: '#fff' },
-    { type: 'call', label: 'Call', bg: '#10b981', color: '#fff' },
-    { type: 'bet', label: 'Bet', bg: '#10b981', color: '#000' },
-    { type: 'raise', label: 'Raise', bg: '#ef4444', color: '#fff' },
-];
-
-export const ActionButtons: React.FC<ActionButtonsProps> = ({ onAction }) => {
+export const ActionButtons: React.FC<ActionButtonsProps> = ({
+    onAction,
+    canCheck,
+    canCall,
+    canBet,
+    canRaise,
+    callAmount,
+}) => {
     return (
         <View style={styles.container}>
-            {ACTIONS.map(a => (
+            {/* Fold — always available */}
+            <TouchableOpacity
+                style={[styles.btn, { backgroundColor: '#6c757d' }]}
+                onPress={() => onAction('fold')}
+                activeOpacity={0.7}
+            >
+                <Text style={[styles.label, { color: '#fff' }]}>Fold</Text>
+            </TouchableOpacity>
+
+            {/* Check or Call (mutually exclusive) */}
+            {canCheck ? (
                 <TouchableOpacity
-                    key={a.type}
-                    style={[styles.btn, { backgroundColor: a.bg }]}
-                    onPress={() => onAction(a.type)}
+                    style={[styles.btn, { backgroundColor: '#10b981' }]}
+                    onPress={() => onAction('check')}
                     activeOpacity={0.7}
                 >
-                    <Text style={[styles.label, { color: a.color }]}>{a.label}</Text>
+                    <Text style={[styles.label, { color: '#fff' }]}>Check</Text>
                 </TouchableOpacity>
-            ))}
+            ) : canCall ? (
+                <TouchableOpacity
+                    style={[styles.btn, { backgroundColor: '#10b981' }]}
+                    onPress={() => onAction('call')}
+                    activeOpacity={0.7}
+                >
+                    <Text style={[styles.label, { color: '#fff' }]}>
+                        Call{callAmount ? ` ${callAmount}` : ''}
+                    </Text>
+                </TouchableOpacity>
+            ) : null}
+
+            {/* Bet or Raise (mutually exclusive) */}
+            {canBet ? (
+                <TouchableOpacity
+                    style={[styles.btn, { backgroundColor: '#f97316' }]}
+                    onPress={() => onAction('bet')}
+                    activeOpacity={0.7}
+                >
+                    <Text style={[styles.label, { color: '#fff' }]}>Bet</Text>
+                </TouchableOpacity>
+            ) : canRaise ? (
+                <TouchableOpacity
+                    style={[styles.btn, { backgroundColor: '#ef4444' }]}
+                    onPress={() => onAction('raise')}
+                    activeOpacity={0.7}
+                >
+                    <Text style={[styles.label, { color: '#fff' }]}>Raise</Text>
+                </TouchableOpacity>
+            ) : null}
         </View>
     );
 };
@@ -35,16 +78,14 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({ onAction }) => {
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        gap: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        flexWrap: 'wrap',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
     },
     btn: {
         flex: 1,
-        minWidth: 60,
         paddingVertical: 10,
-        paddingHorizontal: 8,
+        paddingHorizontal: 6,
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',

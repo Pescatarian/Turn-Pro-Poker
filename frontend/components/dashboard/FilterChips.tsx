@@ -36,11 +36,14 @@ export function FilterChips({
     selectedVenue,
     onVenueChange,
 }: FilterChipsProps) {
-    const locations = useLocations();
+    const { locations, loading: locationsLoading } = useLocations();
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [showVenuePicker, setShowVenuePicker] = useState(false);
 
     const venueOptions = [null, ...locations];
+
+    // Show venue chip while loading OR when venues exist
+    const showVenueChip = locationsLoading || locations.length > 0;
 
     return (
         <View style={styles.container}>
@@ -56,20 +59,29 @@ export function FilterChips({
                 <Ionicons name="chevron-down" size={10} color={selectedTimeRange !== 'all' ? '#052018' : COLORS.muted} />
             </TouchableOpacity>
 
-            {/* Venue Chip */}
-            {locations.length > 0 && (
+            {/* Venue Chip — visible while loading or when venues exist */}
+            {showVenueChip && (
                 <TouchableOpacity
-                    style={[styles.chip, selectedVenue !== null && styles.chipActive]}
-                    onPress={() => setShowVenuePicker(true)}
+                    style={[
+                        styles.chip,
+                        selectedVenue !== null && styles.chipActive,
+                        locationsLoading && styles.chipDisabled,
+                    ]}
+                    onPress={() => !locationsLoading && setShowVenuePicker(true)}
+                    activeOpacity={locationsLoading ? 1 : 0.7}
                 >
-                    <Ionicons name="location-outline" size={12} color={selectedVenue ? '#052018' : COLORS.muted} />
+                    <Ionicons name="location-outline" size={12} color={locationsLoading ? COLORS.muted : (selectedVenue ? '#052018' : COLORS.muted)} />
                     <Text
-                        style={[styles.chipText, selectedVenue !== null && styles.chipTextActive]}
+                        style={[
+                            styles.chipText,
+                            selectedVenue !== null && styles.chipTextActive,
+                            locationsLoading && { opacity: 0.5 },
+                        ]}
                         numberOfLines={1}
                     >
-                        {selectedVenue || 'All Venues'}
+                        {locationsLoading ? 'Venues…' : (selectedVenue || 'All Venues')}
                     </Text>
-                    <Ionicons name="chevron-down" size={10} color={selectedVenue ? '#052018' : COLORS.muted} />
+                    <Ionicons name="chevron-down" size={10} color={locationsLoading ? COLORS.muted : (selectedVenue ? '#052018' : COLORS.muted)} />
                 </TouchableOpacity>
             )}
 
@@ -148,6 +160,9 @@ const styles = StyleSheet.create({
     chipActive: {
         backgroundColor: COLORS.accent,
         borderColor: COLORS.accent,
+    },
+    chipDisabled: {
+        opacity: 0.5,
     },
     chipText: {
         fontSize: 11,

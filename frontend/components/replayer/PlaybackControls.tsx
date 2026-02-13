@@ -34,13 +34,13 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({ onShare, onP
 const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
-        gap: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 4,
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 3,
     },
     btn: {
         flex: 1,
-        paddingVertical: 12,
+        paddingVertical: 8,
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 8,
         alignItems: 'center',
@@ -48,10 +48,10 @@ const styles = StyleSheet.create({
     },
     btnText: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: 12,
     },
     navText: {
         color: '#fff',
-        fontSize: 18,
+        fontSize: 16,
     },
 });

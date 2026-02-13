@@ -27,12 +27,10 @@ const SUIT_SYMBOL: Record<string, string> = {
 export const Card: React.FC<CardProps> = ({ rank, suit, hidden = false, revealed = false, style, size = 'normal' }) => {
     const sizeStyle = size === 'small' ? styles.cardSmall : size === 'large' ? styles.cardLarge : styles.card;
 
-    // Hidden card (face down) — red back
+    // Hidden card (face down) — solid red back
     if (hidden && !revealed) {
         return (
-            <View style={[sizeStyle, styles.hiddenCard, style]}>
-                <View style={styles.pattern} />
-            </View>
+            <View style={[sizeStyle, styles.hiddenCard, style]} />
         );
     }
 

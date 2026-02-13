@@ -254,7 +254,7 @@ const SessionsPage = ({ sessions }: { sessions: Session[] }) => {
     const { isOpen, editingSessionId, openAddModal, openEditModal, closeModal } = useSessionModal();
     const [editingSession, setEditingSession] = useState<Session | null>(null);
     const [form, setForm] = useState<SessionFormData>(emptyForm);
-    const savedLocations = useLocations();
+    const { locations: savedLocations } = useLocations();
     const { showToast } = useToast();
 
     // Date picker state

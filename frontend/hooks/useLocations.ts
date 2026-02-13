@@ -7,8 +7,9 @@ import { Q } from '@nozbe/watermelondb';
  * Custom hook that extracts unique locations from session history,
  * sorted by frequency (most used first).
  */
-export function useLocations(): string[] {
+export function useLocations(): { locations: string[]; loading: boolean } {
     const [locations, setLocations] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadLocations = async () => {
@@ -32,6 +33,7 @@ export function useLocations(): string[] {
                 .map(([loc]) => loc);
 
             setLocations(sorted);
+            setLoading(false);
         };
 
         loadLocations();
@@ -44,5 +46,5 @@ export function useLocations(): string[] {
         return () => sub.unsubscribe();
     }, []);
 
-    return locations;
+    return { locations, loading };
 }

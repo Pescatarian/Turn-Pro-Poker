@@ -1,8 +1,8 @@
 # Turn Pro Poker - Implementation Plan
 
-> **Status as of Feb 12, 2026**  
-> Phase 5 Batch 1, Batch 2, & UI Polish batch complete. All core screens polished.  
-> **Next:** Stats page filters, remaining "coming soon" features, iOS build.
+> **Status as of Feb 13, 2026**  
+> Phase 5 Batches 1–3 & UI Polish complete. Stats page filters done. All core screens polished.  
+> **Next:** Remaining "coming soon" features, hand replayer, iOS build.
 
 ---
 
@@ -45,13 +45,13 @@
 - **Session modal** - KeyboardAvoidingView prevents keyboard overlap
 - **Header cleanup** - removed user avatar, filter chips + Get Coach span full width
 - **Tab navigator** - `lazy={false}` eliminates first-navigation flash
+- **Stats page filters** - FilterChips (time-range + venue), PrivacyContext, skeleton loader, pull-to-refresh
 - Basic tests (6/11 passing — pre-existing failures)
 
 ### ⏳ Blocked (LOW PRIORITY)
 - Real purchase testing (needs Google Play Console — deliberately deferred)
 
 ### ⏳ Upcoming
-- Stats page: add time-range + venue filters (dashboard has them, stats does not)
 - Remaining "coming soon" items (Player Profiles, Locations, Notepad, Calendar, PDF Export)
 - Hand replayer animations (Share/Play buttons show "coming soon")
 - iOS build
@@ -80,19 +80,19 @@ flowchart LR
 
 ---
 
-## Current Priority: UI Polish & Feature Completion (Phase 5)
+## Current Priority: Feature Completion & iOS Build (Phases 5–6)
 
-**Dashboard ✅ Done:** Filters, BankrollChart, BankrollModal, privacy toggle, stat cards.
+**Dashboard ✅ Done:** Filters, BankrollChart, BankrollModal, privacy toggle, stat cards.  
+**Stats ✅ Done:** FilterChips, PrivacyContext, skeleton loader, chart, pull-to-refresh.  
+**UI Polish ✅ Done:** Toasts, error boundary, skeletons, header cleanup, tab lazy loading.
 
 **Next Steps:**
-1. Wire Stats page to global `PrivacyContext` (currently local `useState`)
-2. Add FilterChips to Stats page (time-range + venue, like dashboard)
-3. Implement toast notification system (replace 36 `Alert.alert` calls)
-4. Add skeleton loaders for data-fetching screens
-5. Add ErrorBoundary wrapper
-6. Build out "coming soon" features (Player Profiles, Locations, etc.)
+1. Implement hand replayer animations (Share/Play currently "coming soon")
+2. Build out "coming soon" features (Locations, Calendar, Player Profiles, Notepad, PDF Export)
+3. iOS build + TestFlight testing
+4. Fix pre-existing test failures, increase coverage
 
-**ETA:** 1-2 weeks
+**ETA:** 2-3 weeks
 
 ---
 
@@ -219,9 +219,9 @@ cd frontend && npm test -- --coverage
 
 ## Next 3 Steps
 
-1. **Stats page polish** — wire to global `PrivacyContext` + add `FilterChips`
-2. **Toast system** — replace `Alert.alert` calls with non-blocking toasts
-3. **Loading states** — skeleton loaders + error boundaries
+1. **Hand replayer** — implement Share + Play button functionality (currently "coming soon")
+2. **"Coming soon" features** — Locations page, Calendar view, Player Profiles
+3. **iOS build** — configure bundle ID, EAS build, TestFlight testing
 
 **For detailed documentation, see:**
 - [Next Phase.md](file:///c:/Users/USER/Desktop/Turn-Pro-Poker/Next%20Phase.md)

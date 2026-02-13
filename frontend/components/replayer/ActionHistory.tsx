@@ -42,8 +42,8 @@ export const ActionHistory: React.FC<ActionHistoryProps> = ({ actions }) => {
                 const label = a.amount ? `${a.action} $${a.amount}` : a.action;
                 return (
                     <View key={a.id} style={[styles.pill, { backgroundColor: s.bg }]}>
-                        <Text style={[styles.actionText, { color: s.color }]}>{label}</Text>
                         <Text style={styles.playerText}>{a.player}</Text>
+                        <Text style={[styles.actionText, { color: s.color }]}>{label}</Text>
                     </View>
                 );
             })}

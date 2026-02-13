@@ -114,51 +114,49 @@ const LAYOUTS: Record<number, SeatPos[]> = {
     9: LAYOUT_9,
 };
 
-// Dealer button offset — positioned INWARD from the seat toward the table center.
-// The button must stay on the green felt, between the seat and the middle of the table.
-// Backup of previous values saved in PokerTable.backup.tsx.
+// Based on index.html — dealer on OPPOSITE side from bet chips.
 function getDealerOffset(tableSize: number, seatIndex: number): Record<string, any> {
     const layout = LAYOUTS[tableSize] || LAYOUT_9;
     const pos = layout[seatIndex]?.style || {};
 
-    // Seat 1: bottom center (6 o'clock) — dealer above-left of seat
+    // Seat 1: bottom center
     if (pos.bottom !== undefined && pos.bottom === '0%') {
-        return { top: -35, left: -5 };
+        return { top: -40, left: '50%', transform: [{ translateX: -16 }], right: undefined };
     }
-    // Seat 2: bottom-left (~7:30) — dealer to the right (inward)
+    // Seat 2: bottom-left
     if (pos.bottom !== undefined && pos.left !== undefined && !pos.right) {
-        return { top: -5, right: -38 };
+        return { top: -30, left: 10, right: undefined };
     }
-    // Seat 9: bottom-right (~4:30) — dealer to the left (inward)
+    // Seat 9: bottom-right
     if (pos.bottom !== undefined && pos.right !== undefined && !pos.left) {
-        return { top: -5, left: -38 };
+        return { top: -30, right: 10, left: undefined };
     }
-    // Seat 3: left mid (9 o'clock) — dealer to the right (inward)
+    // Seat 3: left mid
     if (pos.left !== undefined && !pos.right && pos.top !== undefined && typeof pos.top === 'string' && pos.top.includes('48')) {
-        return { top: -5, right: -38 };
+        return { bottom: -30, left: 10, right: undefined };
     }
-    // Seat 4: upper-left (~10:30) — dealer below-right (inward)
+    // Seat 4: upper-left
     if (pos.top !== undefined && pos.left !== undefined && !pos.right && pos.top === '18%') {
-        return { bottom: -10, right: -38 };
+        return { top: 55, left: 10, right: undefined };
     }
-    // Seat 7: upper-right (~1:30) — dealer below-left (inward)
+    // Seat 7: upper-right
     if (pos.top !== undefined && pos.right !== undefined && !pos.left && pos.top === '18%') {
-        return { bottom: -10, left: -38 };
+        return { top: 55, right: 10, left: undefined };
     }
-    // Seat 8: right mid (3 o'clock) — dealer to the left (inward)
+    // Seat 8: right mid
     if (pos.right !== undefined && !pos.left && pos.top !== undefined && typeof pos.top === 'string' && pos.top.includes('48')) {
-        return { top: -5, left: -38 };
+        return { bottom: -30, right: 10, left: undefined };
     }
-    // Seat 5: top-left (~11 o'clock) — dealer below (inward onto felt)
+    // Seat 5: top-left
     if (pos.top !== undefined && pos.top === '-2%' && pos.left !== undefined) {
-        return { top: 65, right: -5 };
+        return { top: 85, left: 10, right: undefined };
     }
-    // Seat 6: top-right (~1 o'clock) — dealer below (inward onto felt)
+    // Seat 6: top-right
     if (pos.top !== undefined && pos.top === '-2%' && pos.right !== undefined) {
-        return { top: 65, left: -5 };
+        return { top: 85, right: 10, left: undefined };
     }
-    // Fallback — above-left
-    return { top: -35, left: -5 };
+    // Fallback
+    return { top: -40, left: '50%', transform: [{ translateX: -16 }] };
 }
 
 // --- Bet chip offsets — projected onto the felt, away from board cards ---

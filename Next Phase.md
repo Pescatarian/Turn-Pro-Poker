@@ -1,7 +1,7 @@
 # Turn Pro Poker - Development Roadmap
 
-> **📍 Current Status:** Phase 5 Batch 1, Batch 2, & UI Polish batch complete. All core screens polished.
-> **🎯 Next Priority:** Stats page filters + remaining "coming soon" features + iOS build
+> **📍 Current Status:** Phase 5 Batches 1–3 & UI Polish complete. Stats page filters done. All core screens polished.
+> **🎯 Next Priority:** Remaining "coming soon" features + Hand replayer + iOS build
 
 ---
 
@@ -157,9 +157,9 @@
 - [x] Header cleanup (removed user avatar, full-width filter + Get Coach)
 - [x] Tab navigator lazy=false (eliminates first-navigation flash)
 - [x] Fixed pre-existing Date|null TypeScript errors
+- [x] Stats page: time-range + venue filters (FilterChips, PrivacyContext, skeleton loader)
 
 ### UI Polish (Remaining)
-- [ ] Stats page: add time-range + venue filters (dashboard has them, stats does not)
 - [ ] Hand replayer animations (Share/Play buttons show "coming soon")
 
 ### More Page — "Coming Soon" Items

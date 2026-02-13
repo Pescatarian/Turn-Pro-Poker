@@ -1,7 +1,7 @@
 # Turn Pro Poker - Development Roadmap
 
-> **📍 Current Status:** Phase 5 Batches 1–3 & UI Polish complete. Stats page filters done. All core screens polished.
-> **🎯 Next Priority:** Remaining "coming soon" features + Hand replayer + iOS build
+> **📍 Current Status:** Phase 5 Batches 1–3 & UI Polish complete. Stats page filters done. Hands replayer enhanced.
+> **🎯 Next Priority:** Remaining "coming soon" features + iOS build
 
 ---
 
@@ -159,6 +159,15 @@
 - [x] Fixed pre-existing Date|null TypeScript errors
 - [x] Stats page: time-range + venue filters (FilterChips, PrivacyContext, skeleton loader)
 
+### Batch 4: Hands Replayer Enhancements ✅ COMPLETE
+- [x] Dealer button positioned per-seat using index.html `updateDealerButton()` exact values
+- [x] Bet chip pill-shaped display (auto-sizing for any amount, red pill with white text)
+- [x] Blind/ante posting (SB/BB chips shown at preflop with correct amounts)
+- [x] Preflop action ordering (UTG-first, skipping SB/BB who already posted)
+- [x] Board card centering and spacing fixes
+- [x] Dealer button size reduced (32px circle, white "D" text)
+- [x] Safe-edit workflow created (`.agent/workflows/safe-edit.md`) for git-based code reverts
+
 ### UI Polish (Remaining)
 - [ ] Hand replayer animations (Share/Play buttons show "coming soon")
 
@@ -264,9 +273,15 @@
 
 ### Hands Tab
 - Full replayer UI (9-seat poker table, card picker, suit picker)
+- Dealer button positioned per-seat (values from index.html prototype)
+- Bet chip pill display (SB/BB blind posting at preflop)
+- Preflop action ordering (UTG-first, skip posted blinds)
 - Action buttons (Fold/Check/Call/Bet/Raise)
 - Action history pills
 - Playback controls (Share, Play, ←/→ navigation)
+
+### Development Workflows
+- Safe-edit workflow (`.agent/workflows/safe-edit.md`) — git commit before/after edits, backup copies, git-based reverts
 
 ---
 
@@ -279,6 +294,8 @@
 - **CSV Export Service:** `frontend/services/export.ts`
 - **Location Hook:** `frontend/hooks/useLocations.ts`
 - **Sessions Page:** `frontend/app/(tabs)/sessions/index.tsx` (swipe gestures + form UX)
+- **Poker Table Replayer:** `frontend/components/replayer/PokerTable.tsx` (9-seat table, dealer, chips)
+- **Safe-Edit Workflow:** `.agent/workflows/safe-edit.md` (git-based revert process)
 
 ---
 

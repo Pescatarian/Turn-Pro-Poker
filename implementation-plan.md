@@ -1,8 +1,8 @@
 # Turn Pro Poker - Implementation Plan
 
 > **Status as of Feb 13, 2026**  
-> Phase 5 Batches 1–3 & UI Polish complete. Stats page filters done. All core screens polished.  
-> **Next:** Remaining "coming soon" features, hand replayer, iOS build.
+> Phase 5 Batches 1–4 & UI Polish complete. Stats page filters done. Hands replayer enhanced with dealer button, bet chips, blinds, action ordering.  
+> **Next:** Remaining "coming soon" features, iOS build.
 
 ---
 
@@ -37,6 +37,7 @@
 - **ScreenWrapper** - consistent layout component
 - **Theme system** (COLORS, GRADIENTS, FONTS)
 - **Hands replayer UI** - 9-seat table, card/suit picker, action buttons/history
+- **Hands replayer enhancements** - dealer button per-seat (from index.html), bet chip pills, SB/BB blind posting, UTG-first preflop ordering
 - **Toast notification system** - replaced ~25 Alert.alert calls with dismissible toasts
 - **Error boundary** - class-based boundary wrapping app provider tree
 - **Skeleton loaders** - dashboard, stats, bankroll screens
@@ -46,6 +47,7 @@
 - **Header cleanup** - removed user avatar, filter chips + Get Coach span full width
 - **Tab navigator** - `lazy={false}` eliminates first-navigation flash
 - **Stats page filters** - FilterChips (time-range + venue), PrivacyContext, skeleton loader, pull-to-refresh
+- **Safe-edit workflow** - git commit before/after edits, backup copies, `.agent/workflows/safe-edit.md`
 - Basic tests (6/11 passing — pre-existing failures)
 
 ### ⏳ Blocked (LOW PRIORITY)
@@ -53,7 +55,7 @@
 
 ### ⏳ Upcoming
 - Remaining "coming soon" items (Player Profiles, Locations, Notepad, Calendar, PDF Export)
-- Hand replayer animations (Share/Play buttons show "coming soon")
+- Hand replayer animations (Share/Play currently "coming soon")
 - iOS build
 - Comprehensive testing
 - App Store submission
@@ -86,8 +88,10 @@ flowchart LR
 **Stats ✅ Done:** FilterChips, PrivacyContext, skeleton loader, chart, pull-to-refresh.  
 **UI Polish ✅ Done:** Toasts, error boundary, skeletons, header cleanup, tab lazy loading.
 
+**Hands Replayer ✅ Done:** Dealer button per-seat (index.html values), bet chip pills, SB/BB posting, UTG-first ordering.
+
 **Next Steps:**
-1. Implement hand replayer animations (Share/Play currently "coming soon")
+1. Hand replayer animations (Share/Play currently "coming soon")
 2. Build out "coming soon" features (Locations, Calendar, Player Profiles, Notepad, PDF Export)
 3. iOS build + TestFlight testing
 4. Fix pre-existing test failures, increase coverage
@@ -209,6 +213,8 @@ cd frontend && npm test -- --coverage
 - `frontend/hooks/useLocations.ts` - Location management hook ✅
 - `frontend/assets/images/turn-pro-logo-transparent.png` - Logo (transparent PNG)
 - `frontend/app/(tabs)/` - Main screens ✅ (sessions page with swipe gestures)
+- `frontend/components/replayer/PokerTable.tsx` - Poker table replayer (9-seat, dealer, chips) ✅
+- `.agent/workflows/safe-edit.md` - Safe code editing workflow (git-based reverts) ✅
 
 **Configuration:**
 - `frontend/eas.json` - EAS Build and Update configuration ✅
@@ -219,7 +225,7 @@ cd frontend && npm test -- --coverage
 
 ## Next 3 Steps
 
-1. **Hand replayer** — implement Share + Play button functionality (currently "coming soon")
+1. **Hand replayer animations** — implement Share + Play button functionality (currently "coming soon")
 2. **"Coming soon" features** — Locations page, Calendar view, Player Profiles
 3. **iOS build** — configure bundle ID, EAS build, TestFlight testing
 

@@ -27,7 +27,7 @@ npx expo start               # For Expo Go (limited features)
 - **Session Tracking**: Log buy-ins, cash-outs, game type, stakes, location
 - **Bankroll Management**: Track deposits, withdrawals, running balance
 - **Statistics**: Hourly rate, win rate, total profit, session history
-- **Hand Replayer**: Record and review individual hands
+- **Hand Replayer**: 9-seat poker table, dealer button, bet chips, blind posting, action history
 - **Privacy Mode**: Hide sensitive information
 - **Offline-First**: Works without internet, syncs when connected
 - **JWT Authentication**: Secure user accounts
@@ -82,7 +82,8 @@ Turn-Pro-Poker/
 ├── frontend/         # Expo React Native app
 │   ├── app/          # expo-router pages
 │   ├── model/        # WatermelonDB models
-│   ├── components/
+│   ├── components/   # UI components (incl. replayer/PokerTable.tsx)
 │   └── app.json
-└── index.html        # Original prototype
+├── .agent/workflows/ # Dev workflows (safe-edit, deploy)
+└── index.html        # Original prototype (includes poker table replayer)
 ```

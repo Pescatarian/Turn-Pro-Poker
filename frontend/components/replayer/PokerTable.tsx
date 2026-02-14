@@ -47,72 +47,72 @@ type SeatPos = { style: Record<string, any> };
 
 // --- 9-max: Hero at 6, then every 40° clockwise ---
 const LAYOUT_9: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00 (hero)
-    { style: { bottom: '12%', left: '0%' } },                                          // 1: ~7:20
-    { style: { top: '38%', left: '-4%', transform: [{ translateY: -30 }] } },          // 2: ~8:40
-    { style: { top: '10%', left: '2%' } },                                             // 3: ~10:00
-    { style: { top: '-4%', left: '22%' } },                                            // 4: ~11:20
-    { style: { top: '-4%', right: '22%' } },                                           // 5: ~12:40
-    { style: { top: '10%', right: '2%' } },                                            // 6: ~2:00
-    { style: { top: '38%', right: '-4%', transform: [{ translateY: -30 }] } },         // 7: ~3:20
-    { style: { bottom: '12%', right: '0%' } },                                         // 8: ~4:40
+    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00 (hero)
+    { style: { bottom: '20%', left: '0%' } },                                          // 1: ~7:20
+    { style: { top: '42%', left: '-4%', transform: [{ translateY: -30 }] } },          // 2: ~8:40
+    { style: { top: '18%', left: '0%' } },                                             // 3: ~10:00
+    { style: { top: '2%', left: '18%' } },                                             // 4: ~11:20
+    { style: { top: '2%', right: '18%' } },                                            // 5: ~12:40
+    { style: { top: '18%', right: '0%' } },                                            // 6: ~2:00
+    { style: { top: '42%', right: '-4%', transform: [{ translateY: -30 }] } },         // 7: ~3:20
+    { style: { bottom: '20%', right: '0%' } },                                         // 8: ~4:40
 ];
 
 // --- 8-max: Hero at 6, then every 45° clockwise ---
 const LAYOUT_8: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00
-    { style: { bottom: '14%', left: '0%' } },                                          // 1: ~7:30
-    { style: { top: '28%', left: '-2%', transform: [{ translateY: -30 }] } },          // 2: ~9:00
-    { style: { top: '2%', left: '12%' } },                                             // 3: ~10:30
-    { style: { top: '-4%', left: '50%', transform: [{ translateX: -35 }] } },          // 4: 12:00
-    { style: { top: '2%', right: '12%' } },                                            // 5: ~1:30
-    { style: { top: '28%', right: '-2%', transform: [{ translateY: -30 }] } },         // 6: ~3:00
-    { style: { bottom: '14%', right: '0%' } },                                         // 7: ~4:30
+    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },        // 0: 6:00
+    { style: { bottom: '18%', left: '0%' } },                                          // 1: ~7:30
+    { style: { top: '34%', left: '-4%', transform: [{ translateY: -30 }] } },          // 2: ~9:00
+    { style: { top: '6%', left: '6%' } },                                              // 3: ~10:30
+    { style: { top: '2%', left: '50%', transform: [{ translateX: -35 }] } },           // 4: 12:00
+    { style: { top: '6%', right: '6%' } },                                             // 5: ~1:30
+    { style: { top: '34%', right: '-4%', transform: [{ translateY: -30 }] } },         // 6: ~3:00
+    { style: { bottom: '18%', right: '0%' } },                                         // 7: ~4:30
 ];
 
 // --- 7-max: Hero at 6, ~51° spacing ---
 const LAYOUT_7: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00
-    { style: { bottom: '10%', left: '0%' } },                                          // 1: ~7:43
-    { style: { top: '16%', left: '-2%' } },                                            // 2: ~9:26
-    { style: { top: '-4%', left: '24%' } },                                            // 3: ~11:09
-    { style: { top: '-4%', right: '24%' } },                                           // 4: ~12:51
-    { style: { top: '16%', right: '-2%' } },                                           // 5: ~2:34
-    { style: { bottom: '10%', right: '0%' } },                                         // 6: ~4:17
+    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },        // 0: 6:00
+    { style: { bottom: '16%', left: '0%' } },                                          // 1: ~7:43
+    { style: { top: '22%', left: '-2%' } },                                            // 2: ~9:26
+    { style: { top: '2%', left: '20%' } },                                             // 3: ~11:09
+    { style: { top: '2%', right: '20%' } },                                            // 4: ~12:51
+    { style: { top: '22%', right: '-2%' } },                                           // 5: ~2:34
+    { style: { bottom: '16%', right: '0%' } },                                         // 6: ~4:17
 ];
 
 // --- 6-max: Hero at 6, every 60° ---
 const LAYOUT_6: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00
-    { style: { bottom: '10%', left: '0%' } },                                          // 1: ~8:00
-    { style: { top: '6%', left: '2%' } },                                              // 2: 10:00
-    { style: { top: '-4%', left: '50%', transform: [{ translateX: -35 }] } },          // 3: 12:00
-    { style: { top: '6%', right: '2%' } },                                             // 4: 2:00
-    { style: { bottom: '10%', right: '0%' } },                                         // 5: ~4:00
+    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },        // 0: 6:00
+    { style: { bottom: '16%', left: '0%' } },                                          // 1: ~8:00
+    { style: { top: '12%', left: '0%' } },                                             // 2: 10:00
+    { style: { top: '2%', left: '50%', transform: [{ translateX: -35 }] } },           // 3: 12:00
+    { style: { top: '12%', right: '0%' } },                                            // 4: 2:00
+    { style: { bottom: '16%', right: '0%' } },                                         // 5: ~4:00
 ];
 
 // --- 5-max: Hero at 6, every 72° ---
 const LAYOUT_5: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00
-    { style: { top: '30%', left: '-2%', transform: [{ translateY: -30 }] } },          // 1: ~8:24
-    { style: { top: '-2%', left: '16%' } },                                            // 2: ~10:48
-    { style: { top: '-2%', right: '16%' } },                                           // 3: ~1:12
-    { style: { top: '30%', right: '-2%', transform: [{ translateY: -30 }] } },         // 4: ~3:36
+    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },        // 0: 6:00
+    { style: { top: '36%', left: '-2%', transform: [{ translateY: -30 }] } },          // 1: ~8:24
+    { style: { top: '2%', left: '14%' } },                                             // 2: ~10:48
+    { style: { top: '2%', right: '14%' } },                                            // 3: ~1:12
+    { style: { top: '36%', right: '-2%', transform: [{ translateY: -30 }] } },         // 4: ~3:36
 ];
 
 // --- 4-max: Hero at 6, every 90° ---
 const LAYOUT_4: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00
-    { style: { top: '32%', left: '-4%', transform: [{ translateY: -30 }] } },          // 1: 9:00
-    { style: { top: '-4%', left: '50%', transform: [{ translateX: -35 }] } },          // 2: 12:00
-    { style: { top: '32%', right: '-4%', transform: [{ translateY: -30 }] } },         // 3: 3:00
+    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },        // 0: 6:00
+    { style: { top: '38%', left: '-4%', transform: [{ translateY: -30 }] } },          // 1: 9:00
+    { style: { top: '2%', left: '50%', transform: [{ translateX: -35 }] } },           // 2: 12:00
+    { style: { top: '38%', right: '-4%', transform: [{ translateY: -30 }] } },         // 3: 3:00
 ];
 
 // --- 3-max: Hero at 6, every 120° ---
 const LAYOUT_3: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00
-    { style: { top: '6%', left: '2%' } },                                              // 1: 10:00
-    { style: { top: '6%', right: '2%' } },                                             // 2: 2:00
+    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },        // 0: 6:00
+    { style: { top: '12%', left: '0%' } },                                             // 1: 10:00
+    { style: { top: '12%', right: '0%' } },                                            // 2: 2:00
 ];
 
 const LAYOUTS: Record<number, SeatPos[]> = {
@@ -335,8 +335,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 const styles = StyleSheet.create({
     container: {
         width: '100%',
-        aspectRatio: 1 / 1.2,
-        maxWidth: 400,
+        flex: 1,
+        maxWidth: 420,
         alignSelf: 'center',
     },
     tableOuter: {

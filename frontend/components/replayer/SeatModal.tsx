@@ -1,15 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
-// Use variation selector VS15 (\uFE0E) to force text rendering on Android
-// so the color style is respected instead of emoji default colors
-const SUITS: { key: string; symbol: string; color: string }[] = [
-    { key: 'h', symbol: '♥', color: '#ef4444' },
-    { key: 's', symbol: '♠', color: '#1a1a2e' },
-    { key: 'd', symbol: '♦', color: '#f97316' },
-    { key: 'c', symbol: '♣', color: '#10b981' },
+const SUITS: { key: string; icon: string; color: string }[] = [
+    { key: 'h', icon: 'cards-heart', color: '#ef4444' },
+    { key: 's', icon: 'cards-spade', color: '#1a1a2e' },
+    { key: 'd', icon: 'cards-diamond', color: '#f97316' },
+    { key: 'c', icon: 'cards-club', color: '#10b981' },
 ];
 
 // Split ranks into rows of 5-5-3
@@ -146,7 +145,7 @@ export const SeatModal: React.FC<SeatModalProps> = ({
                                         style={styles.suitBtn}
                                         onPress={() => handleSelectSuit(s.key)}
                                     >
-                                        <Text style={[styles.suitText, { color: s.color }]}>{s.symbol}</Text>
+                                        <MaterialCommunityIcons name={s.icon as any} size={22} color={s.color} />
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -239,6 +238,7 @@ const styles = StyleSheet.create({
         flex: 1,
         gap: 5,
         alignItems: 'center',
+        paddingTop: 28,
     },
     rankRow: {
         flexDirection: 'row',

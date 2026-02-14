@@ -145,21 +145,47 @@ for (let n = 3; n <= 9; n++) {
     LAYOUTS[n] = computeSeatLayout(n);
 }
 
-// Dealer button offset — uses angle to point toward table center.
+// Per-seat dealer button lateral offset (positive = player's left, negative = player's right)
+// Only 9-max has overrides; all other sizes use default.
+const DEALER_LATERAL: Record<number, number[]> = {
+    9: [
+        20,   // seat 0 (hero) — default left
+        20,   // seat 1 → seat 2
+        20,   // seat 2 → seat 3
+        30,   // seat 3 → seat 4 — more left
+        -30,  // seat 4 → seat 5 — way more right
+        40,   // seat 5 → seat 6 — all the way left
+        -40,  // seat 6 → seat 7 — waaaaay right
+        45,   // seat 7 → seat 8 — closer + left
+        45,   // seat 8 → seat 9 — closer + left
+    ],
+};
+
+// Dealer button offset — placed to the left/right of each seat (from player's perspective).
 function getDealerOffset(tableSize: number, seatIndex: number): Record<string, any> {
     const angle = seatAngle(tableSize, seatIndex);
-    const dist = 38;
-    // Offset toward center (opposite direction of seat's position on ellipse)
+    const defaultDist = 58;
+    // Per-seat center distance override (lower = closer to seat)
+    const DEALER_CENTER: Record<number, (number | null)[]> = {
+        9: [null, null, null, null, null, null, null, 40, 40],
+    };
+    const centers = DEALER_CENTER[tableSize];
+    const dist = centers ? centers[seatIndex] ?? defaultDist : defaultDist;
+    // Offset toward center
     const dx = Math.round(-dist * Math.cos(angle));
     const dy = Math.round(-dist * Math.sin(angle));
-    // Position relative to seat layout box (center is approx 30, 35)
-    return { left: 14 + dx, top: 20 + dy };
+    // Shift perpendicular (player's left = positive, right = negative)
+    const laterals = DEALER_LATERAL[tableSize];
+    const leftDist = laterals ? laterals[seatIndex] ?? 20 : 20;
+    const leftDx = Math.round(leftDist * (-Math.sin(angle)));
+    const leftDy = Math.round(leftDist * Math.cos(angle));
+    return { left: 9 + dx + leftDx, top: 20 + dy + leftDy };
 }
 
 // Bet chip offset — placed between seat and table center, further out than dealer.
 function getBetChipOffset(tableSize: number, seatIndex: number): Record<string, any> {
     const angle = seatAngle(tableSize, seatIndex);
-    const dist = 50;
+    const dist = 72;
     const dx = Math.round(-dist * Math.cos(angle));
     const dy = Math.round(-dist * Math.sin(angle));
     return { left: 20 + dx, top: 25 + dy };

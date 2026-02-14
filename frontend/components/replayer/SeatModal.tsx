@@ -9,7 +9,7 @@ const SUITS: { key: string; symbol: string; color: string }[] = [
     { key: 'h', symbol: '♥', color: '#ef4444' },
     { key: 's', symbol: '♠', color: '#1a1a2e' },
     { key: 'd', symbol: '♦', color: '#f97316' },
-    { key: 'c', symbol: '♣', color: '#22c55e' },
+    { key: 'c', symbol: '♣', color: '#10b981' },
 ];
 
 // Split ranks into rows of 5-5-3
@@ -188,12 +188,14 @@ const styles = StyleSheet.create({
     /* ---- LEFT PANEL ---- */
     leftPanel: {
         flex: 1,
+        justifyContent: 'center',
         gap: 8,
     },
     seatLabel: {
         color: '#9aa3a8',
         fontSize: 16,
         fontWeight: '600',
+        textAlign: 'center',
         marginBottom: 4,
     },
     seatPos: {

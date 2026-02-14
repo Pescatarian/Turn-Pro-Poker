@@ -38,154 +38,70 @@ function parseCard(c: string): { rank: string; suit: 'h' | 'd' | 'c' | 's' } | n
     return { rank: c.slice(0, -1), suit: c.slice(-1) as any };
 }
 
-// --- Seat Layout Definitions ---
-// Each entry: { style } for absolute positioning within the container.
-// Seat 0 = Hero = always at 6 o'clock (bottom center).
-// Remaining seats are evenly distributed clockwise around the perimeter.
+// --- Computed Seat Positions ---
+// Seats are placed on an elliptical path using trigonometry.
+// Hero (seat 0) is always at 6 o'clock (bottom center).
+// Remaining seats are evenly distributed clockwise.
 
 type SeatPos = { style: Record<string, any> };
 
-// --- 9-max: Hero at 6, then every 40° clockwise ---
-const LAYOUT_9: SeatPos[] = [
-    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00 (hero)
-    { style: { bottom: '20%', left: '0%' } },                                          // 1: ~7:20
-    { style: { top: '42%', left: '-4%', transform: [{ translateY: -30 }] } },          // 2: ~8:40
-    { style: { top: '18%', left: '0%' } },                                             // 3: ~10:00
-    { style: { top: '2%', left: '18%' } },                                             // 4: ~11:20
-    { style: { top: '2%', right: '18%' } },                                            // 5: ~12:40
-    { style: { top: '18%', right: '0%' } },                                            // 6: ~2:00
-    { style: { top: '42%', right: '-4%', transform: [{ translateY: -30 }] } },         // 7: ~3:20
-    { style: { bottom: '20%', right: '0%' } },                                         // 8: ~4:40
-];
-
-// --- 8-max: Hero at 6, then every 45° clockwise ---
-const LAYOUT_8: SeatPos[] = [
-    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },        // 0: 6:00
-    { style: { bottom: '18%', left: '0%' } },                                          // 1: ~7:30
-    { style: { top: '34%', left: '-4%', transform: [{ translateY: -30 }] } },          // 2: ~9:00
-    { style: { top: '6%', left: '6%' } },                                              // 3: ~10:30
-    { style: { top: '2%', left: '50%', transform: [{ translateX: -35 }] } },           // 4: 12:00
-    { style: { top: '6%', right: '6%' } },                                             // 5: ~1:30
-    { style: { top: '34%', right: '-4%', transform: [{ translateY: -30 }] } },         // 6: ~3:00
-    { style: { bottom: '18%', right: '0%' } },                                         // 7: ~4:30
-];
-
-// --- 7-max: Hero at 6, ~51° spacing ---
-const LAYOUT_7: SeatPos[] = [
-    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },        // 0: 6:00
-    { style: { bottom: '16%', left: '0%' } },                                          // 1: ~7:43
-    { style: { top: '22%', left: '-2%' } },                                            // 2: ~9:26
-    { style: { top: '2%', left: '20%' } },                                             // 3: ~11:09
-    { style: { top: '2%', right: '20%' } },                                            // 4: ~12:51
-    { style: { top: '22%', right: '-2%' } },                                           // 5: ~2:34
-    { style: { bottom: '16%', right: '0%' } },                                         // 6: ~4:17
-];
-
-// --- 6-max: Hero at 6, every 60° ---
-const LAYOUT_6: SeatPos[] = [
-    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },        // 0: 6:00
-    { style: { bottom: '16%', left: '0%' } },                                          // 1: ~8:00
-    { style: { top: '12%', left: '0%' } },                                             // 2: 10:00
-    { style: { top: '2%', left: '50%', transform: [{ translateX: -35 }] } },           // 3: 12:00
-    { style: { top: '12%', right: '0%' } },                                            // 4: 2:00
-    { style: { bottom: '16%', right: '0%' } },                                         // 5: ~4:00
-];
-
-// --- 5-max: Hero at 6, every 72° ---
-const LAYOUT_5: SeatPos[] = [
-    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },        // 0: 6:00
-    { style: { top: '36%', left: '-2%', transform: [{ translateY: -30 }] } },          // 1: ~8:24
-    { style: { top: '2%', left: '14%' } },                                             // 2: ~10:48
-    { style: { top: '2%', right: '14%' } },                                            // 3: ~1:12
-    { style: { top: '36%', right: '-2%', transform: [{ translateY: -30 }] } },         // 4: ~3:36
-];
-
-// --- 4-max: Hero at 6, every 90° ---
-const LAYOUT_4: SeatPos[] = [
-    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },        // 0: 6:00
-    { style: { top: '38%', left: '-4%', transform: [{ translateY: -30 }] } },          // 1: 9:00
-    { style: { top: '2%', left: '50%', transform: [{ translateX: -35 }] } },           // 2: 12:00
-    { style: { top: '38%', right: '-4%', transform: [{ translateY: -30 }] } },         // 3: 3:00
-];
-
-// --- 3-max: Hero at 6, every 120° ---
-const LAYOUT_3: SeatPos[] = [
-    { style: { bottom: '2%', left: '50%', transform: [{ translateX: -35 }] } },        // 0: 6:00
-    { style: { top: '12%', left: '0%' } },                                             // 1: 10:00
-    { style: { top: '12%', right: '0%' } },                                            // 2: 2:00
-];
-
-const LAYOUTS: Record<number, SeatPos[]> = {
-    3: LAYOUT_3,
-    4: LAYOUT_4,
-    5: LAYOUT_5,
-    6: LAYOUT_6,
-    7: LAYOUT_7,
-    8: LAYOUT_8,
-    9: LAYOUT_9,
-};
-
-// Dealer button offset — positioned relative to the seat anchor.
-// Uses seat index directly for robustness (independent of seat CSS positions).
-function getDealerOffset(tableSize: number, seatIndex: number): Record<string, any> {
-    const layout = LAYOUTS[tableSize] || LAYOUT_9;
-    const pos = layout[seatIndex]?.style || {};
-
-    // Bottom center (hero): dealer floats above
-    if (seatIndex === 0) {
-        return { top: -40, left: '50%', transform: [{ translateX: -16 }] };
-    }
-    // Left side seats: dealer goes to the right
-    if (pos.left !== undefined && !pos.right) {
-        return { top: 0, left: '100%', marginLeft: 26 };
-    }
-    // Right side seats: dealer goes to the left
-    if (pos.right !== undefined && !pos.left) {
-        return { bottom: 20, right: '100%', marginRight: 26 };
-    }
-    // Top center: dealer below
-    if (pos.left === '50%' || pos.right === '50%') {
-        return { bottom: -40, left: '50%', transform: [{ translateX: -16 }] };
-    }
-    return { top: -40, left: '50%', transform: [{ translateX: -16 }] };
+// Compute seat angle for a given seat index and table size.
+// Returns angle in radians. 6 o'clock = π/2 in screen coords (y-down).
+// Clockwise = increasing angle: 6→9→12→3.
+function seatAngle(tableSize: number, seatIndex: number): number {
+    return (Math.PI / 2) + (seatIndex * 2 * Math.PI / tableSize);
 }
 
-// --- Bet chip offsets — projected onto the felt, away from board cards ---
-function getBetChipOffset(tableSize: number, seatIndex: number): Record<string, any> {
-    const layout = LAYOUTS[tableSize] || LAYOUT_9;
-    const pos = layout[seatIndex]?.style || {};
+// Compute seat positions on an elliptical path.
+// cx, cy = center of ellipse as % of container.
+// rx, ry = semi-axes as % of container.
+// Seats are centered on the computed point via transform.
+function computeSeatLayout(tableSize: number): SeatPos[] {
+    const cx = 50;   // center X %
+    const cy = 50;   // center Y %
+    const rx = 40;   // horizontal semi-axis %
+    const ry = 40;   // vertical semi-axis %
 
-    // Bottom center (hero): bet goes above seat
-    if (seatIndex === 0) {
-        return { top: -36, left: 14 };
+    const seats: SeatPos[] = [];
+    for (let i = 0; i < tableSize; i++) {
+        const angle = seatAngle(tableSize, i);
+        const xPct = cx + rx * Math.cos(angle);
+        const yPct = cy + ry * Math.sin(angle);
+
+        seats.push({
+            style: {
+                left: `${xPct.toFixed(1)}%`,
+                top: `${yPct.toFixed(1)}%`,
+                transform: [{ translateX: -30 }, { translateY: -35 }],
+            },
+        });
     }
+    return seats;
+}
 
-    // Determine which side the seat is on
-    const isLeft = pos.left !== undefined && !pos.right;
-    const isRight = pos.right !== undefined && !pos.left;
-    const isTop = pos.top !== undefined && pos.bottom === undefined;
-    const isBottom = pos.bottom !== undefined && pos.bottom !== '0%';
+const LAYOUTS: Record<number, SeatPos[]> = {};
+for (let n = 3; n <= 9; n++) {
+    LAYOUTS[n] = computeSeatLayout(n);
+}
 
-    // Bottom-left: bet goes up-right
-    if (isBottom && isLeft) return { top: -10, right: -55 };
-    // Bottom-right: bet goes up-left
-    if (isBottom && isRight) return { top: -10, left: -55 };
+// Dealer button offset — uses angle to point toward table center.
+function getDealerOffset(tableSize: number, seatIndex: number): Record<string, any> {
+    const angle = seatAngle(tableSize, seatIndex);
+    const dist = 38;
+    // Offset toward center (opposite direction of seat's position on ellipse)
+    const dx = Math.round(-dist * Math.cos(angle));
+    const dy = Math.round(-dist * Math.sin(angle));
+    // Position relative to seat layout box (center is approx 30, 35)
+    return { left: 14 + dx, top: 20 + dy };
+}
 
-    // Mid-left: bet goes right
-    if (isLeft && isTop && parseFloat(pos.top) > 20) return { top: -22, right: -55 };
-    // Mid-right: bet goes left
-    if (isRight && isTop && parseFloat(pos.top) > 20) return { top: -22, left: -55 };
-
-    // Upper-left: bet goes down-right
-    if (isLeft && isTop && parseFloat(pos.top) <= 20) return { top: 50, right: -40 };
-    // Upper-right: bet goes down-left
-    if (isRight && isTop && parseFloat(pos.top) <= 20) return { top: 50, left: -40 };
-
-    // Top center: bet goes below
-    if (pos.left === '50%' && isTop) return { bottom: -30, left: 14 };
-
-    // Fallback
-    return { top: -36, left: 14 };
+// Bet chip offset — placed between seat and table center, further out than dealer.
+function getBetChipOffset(tableSize: number, seatIndex: number): Record<string, any> {
+    const angle = seatAngle(tableSize, seatIndex);
+    const dist = 50;
+    const dx = Math.round(-dist * Math.cos(angle));
+    const dy = Math.round(-dist * Math.sin(angle));
+    return { left: 20 + dx, top: 25 + dy };
 }
 
 
@@ -211,7 +127,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     displayMode = 'money',
     bb = 10,
 }) => {
-    const layout = LAYOUTS[tableSize] || LAYOUT_9;
+    const layout = LAYOUTS[tableSize] || computeSeatLayout(9);
 
     return (
         <View style={styles.container}>

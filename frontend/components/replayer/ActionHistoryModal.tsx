@@ -93,7 +93,6 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
-        overflow: 'hidden',
     },
     header: {
         flexDirection: 'row',
@@ -123,7 +122,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     list: {
-        flex: 1,
+        flexGrow: 1,
+        flexShrink: 1,
     },
     listContent: {
         padding: 14,

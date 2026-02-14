@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, AppState, AppStateStatus } from 'react-native';
 import { ScreenWrapper } from '../../components/ui/ScreenWrapper';
 import { PokerTable, SeatData } from '../../components/replayer/PokerTable';
 import { SeatModal } from '../../components/replayer/SeatModal';
@@ -89,6 +89,19 @@ export default function HandHistoriesScreen() {
     // Bet sizing modal state
     const [betSizingVisible, setBetSizingVisible] = useState(false);
     const [pendingBetAction, setPendingBetAction] = useState<'bet' | 'raise'>('bet');
+
+    // Close all modals when the app goes to background (passcode activates)
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+            if (nextState === 'background' || nextState === 'inactive') {
+                setSeatModalVisible(false);
+                setHistoryModalVisible(false);
+                setNotesModalVisible(false);
+                setBetSizingVisible(false);
+            }
+        });
+        return () => subscription.remove();
+    }, []);
 
     // --- Facing bet logic ---
     // The highest currentBet among non-folded seats

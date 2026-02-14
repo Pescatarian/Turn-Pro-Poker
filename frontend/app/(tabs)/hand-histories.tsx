@@ -221,7 +221,7 @@ export default function HandHistoriesScreen() {
         const utgSeatIndex = ((utgLabelIndex - clickedLabelIndex) % tableSize + tableSize) % tableSize;
         setActiveSeatIndex(utgSeatIndex);
 
-        showToast('You are seated here');
+
     }, [selectedSeatIndex, seats, tableSize, showToast, sb, bb]);
 
     // Helper: advance to next non-folded seat
@@ -457,11 +457,6 @@ export default function HandHistoriesScreen() {
                         >
                             <Ionicons name="list-outline" size={14} color="#9aa3a8" />
                             <Text style={styles.toolbarBtnText}>History</Text>
-                            {actions.length > 0 && (
-                                <View style={styles.badge}>
-                                    <Text style={styles.badgeText}>{actions.length}</Text>
-                                </View>
-                            )}
                         </TouchableOpacity>
 
                         {/* Notes button */}

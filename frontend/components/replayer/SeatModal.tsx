@@ -1,12 +1,19 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal } from 'react-native';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS: { key: string; symbol: string; color: string }[] = [
     { key: 'h', symbol: '♥', color: '#ef4444' },
-    { key: 's', symbol: '♠', color: '#fff' },
+    { key: 's', symbol: '♠', color: '#1a1a2e' },
     { key: 'd', symbol: '♦', color: '#f97316' },
     { key: 'c', symbol: '♣', color: '#22c55e' },
+];
+
+// Split ranks into rows of 5-5-3
+const RANK_ROWS = [
+    RANKS.slice(0, 5),   // A K Q J T
+    RANKS.slice(5, 10),  // 9 8 7 6 5
+    RANKS.slice(10, 13), // 4 3 2
 ];
 
 interface SeatModalProps {
@@ -42,7 +49,6 @@ export const SeatModal: React.FC<SeatModalProps> = ({
         const card = selectedRank + suit;
 
         if (usedCards[card]) {
-            // Card already used — ignore silently or could show toast
             setSelectedRank(null);
             return;
         }
@@ -61,7 +67,7 @@ export const SeatModal: React.FC<SeatModalProps> = ({
         <Modal
             visible={visible}
             transparent
-            animationType="slide"
+            animationType="fade"
             onRequestClose={handleClose}
         >
             <TouchableOpacity
@@ -70,66 +76,74 @@ export const SeatModal: React.FC<SeatModalProps> = ({
                 onPress={handleClose}
             >
                 <TouchableOpacity activeOpacity={1} style={styles.modal}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <Text style={styles.headerLabel}>
-                            Seat <Text style={styles.headerPos}>{position}</Text>
-                        </Text>
-                        {!isBoardMode && (
-                            <View style={styles.actions}>
-                                <TouchableOpacity style={styles.actionBtn} onPress={onSitHere}>
-                                    <Text style={styles.actionBtnText}>Sit Here</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.actionBtn}>
-                                    <Text style={styles.actionBtnText}>Link Player</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.actionBtn}>
-                                    <Text style={styles.actionBtnText}>Tag</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
-                    </View>
+                    <View style={styles.splitContainer}>
+                        {/* LEFT — Seat Info */}
+                        <View style={styles.leftPanel}>
+                            <Text style={styles.seatLabel}>
+                                Seat <Text style={styles.seatPos}>{position}</Text>
+                            </Text>
 
-                    {/* Stack Input */}
-                    {!isBoardMode && (
-                        <View style={styles.row}>
-                            <Text style={styles.rowLabel}>Stack</Text>
-                            <TextInput
-                                style={styles.stackInput}
-                                value={localStack}
-                                onChangeText={setLocalStack}
-                                keyboardType="numeric"
-                            />
+                            {!isBoardMode && (
+                                <>
+                                    <TouchableOpacity style={styles.actionBtn} onPress={onSitHere}>
+                                        <Text style={styles.actionBtnText}>Sit Here</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity style={styles.actionBtn}>
+                                        <Text style={styles.actionBtnText}>Link Player</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity style={styles.actionBtn}>
+                                        <Text style={styles.actionBtnText}>Tag</Text>
+                                    </TouchableOpacity>
+
+                                    <View style={styles.stackRow}>
+                                        <Text style={styles.stackLabel}>Stack</Text>
+                                        <TextInput
+                                            style={styles.stackInput}
+                                            value={localStack}
+                                            onChangeText={setLocalStack}
+                                            keyboardType="numeric"
+                                        />
+                                    </View>
+                                </>
+                            )}
                         </View>
-                    )}
 
-                    {/* Card Ranks */}
-                    <View style={styles.cardsGrid}>
-                        {RANKS.map(rank => {
-                            const isSelected = selectedRank === rank;
-                            return (
-                                <TouchableOpacity
-                                    key={rank}
-                                    style={[styles.rankCard, isSelected && styles.rankCardSelected]}
-                                    onPress={() => handleSelectRank(rank)}
-                                >
-                                    <Text style={[styles.rankText, isSelected && styles.rankTextSelected]}>{rank}</Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
+                        {/* RIGHT — Card Picker */}
+                        <View style={styles.rightPanel}>
+                            {RANK_ROWS.map((row, rowIdx) => (
+                                <View key={rowIdx} style={styles.rankRow}>
+                                    {row.map(rank => {
+                                        const isSelected = selectedRank === rank;
+                                        return (
+                                            <TouchableOpacity
+                                                key={rank}
+                                                style={[styles.rankCard, isSelected && styles.rankCardSelected]}
+                                                onPress={() => handleSelectRank(rank)}
+                                            >
+                                                <Text style={[styles.rankText, isSelected && styles.rankTextSelected]}>
+                                                    {rank}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            ))}
 
-                    {/* Suits */}
-                    <View style={styles.suitsRow}>
-                        {SUITS.map(s => (
-                            <TouchableOpacity
-                                key={s.key}
-                                style={styles.suitBtn}
-                                onPress={() => handleSelectSuit(s.key)}
-                            >
-                                <Text style={[styles.suitText, { color: s.color }]}>{s.symbol}</Text>
-                            </TouchableOpacity>
-                        ))}
+                            {/* Suit Row */}
+                            <View style={styles.suitsRow}>
+                                {SUITS.map(s => (
+                                    <TouchableOpacity
+                                        key={s.key}
+                                        style={styles.suitBtn}
+                                        onPress={() => handleSelectSuit(s.key)}
+                                    >
+                                        <Text style={[styles.suitText, { color: s.color }]}>{s.symbol}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
                     </View>
 
                     {/* Done Button */}
@@ -145,86 +159,85 @@ export const SeatModal: React.FC<SeatModalProps> = ({
 const styles = StyleSheet.create({
     backdrop: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center',
         alignItems: 'center',
+        padding: 16,
     },
     modal: {
-        backgroundColor: '#2a2a2a',
+        backgroundColor: '#1e1e1e',
         width: '100%',
-        maxWidth: 500,
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
+        maxWidth: 420,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
         paddingHorizontal: 14,
-        paddingTop: 10,
-        paddingBottom: 14,
-        maxHeight: '45%',
+        paddingVertical: 14,
     },
-    header: {
+    splitContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 10,
+        gap: 14,
     },
-    headerLabel: {
-        color: '#9aa3a8',
-        fontSize: 18,
-        fontWeight: '600',
+    /* ---- LEFT PANEL ---- */
+    leftPanel: {
         flex: 1,
+        gap: 8,
     },
-    headerPos: {
+    seatLabel: {
+        color: '#9aa3a8',
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    seatPos: {
         color: '#fff',
-    },
-    actions: {
-        flexDirection: 'row',
-        gap: 10,
-        flex: 3,
-        justifyContent: 'space-between',
+        fontWeight: '700',
     },
     actionBtn: {
-        flex: 1,
-        height: 38,
+        height: 36,
         backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 6,
+        borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
     },
     actionBtnText: {
         color: '#fff',
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    stackRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 4,
+    },
+    stackLabel: {
+        color: '#9aa3a8',
         fontSize: 14,
         fontWeight: '600',
     },
-    row: {
-        flexDirection: 'row',
-        gap: 6,
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    rowLabel: {
-        color: '#9aa3a8',
-        fontSize: 18,
-        fontWeight: '600',
-        minWidth: 50,
-    },
     stackInput: {
-        width: 80,
-        height: 38,
-        padding: 8,
+        flex: 1,
+        height: 36,
+        padding: 6,
         backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 6,
+        borderRadius: 8,
         color: '#fff',
-        fontSize: 16,
+        fontSize: 14,
     },
-    cardsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
+    /* ---- RIGHT PANEL ---- */
+    rightPanel: {
+        flex: 1,
         gap: 5,
-        justifyContent: 'center',
-        marginBottom: 10,
+        alignItems: 'center',
+    },
+    rankRow: {
+        flexDirection: 'row',
+        gap: 4,
     },
     rankCard: {
-        width: 36,
-        height: 44,
+        width: 32,
+        height: 38,
         backgroundColor: '#fff',
         borderRadius: 5,
         alignItems: 'center',
@@ -236,7 +249,7 @@ const styles = StyleSheet.create({
         borderColor: '#10b981',
     },
     rankText: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '700',
         color: '#000',
     },
@@ -245,32 +258,32 @@ const styles = StyleSheet.create({
     },
     suitsRow: {
         flexDirection: 'row',
-        gap: 6,
-        justifyContent: 'center',
-        marginBottom: 0,
+        gap: 5,
+        marginTop: 4,
     },
     suitBtn: {
-        width: 44,
-        height: 44,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 6,
+        width: 36,
+        height: 38,
+        backgroundColor: '#fff',
+        borderRadius: 5,
         alignItems: 'center',
         justifyContent: 'center',
     },
     suitText: {
-        fontSize: 24,
+        fontSize: 22,
     },
+    /* ---- DONE ---- */
     doneBtn: {
         width: '100%',
-        paddingVertical: 8,
+        paddingVertical: 10,
         backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 6,
+        borderRadius: 8,
         alignItems: 'center',
-        marginTop: 8,
+        marginTop: 12,
     },
     doneBtnText: {
         color: '#fff',
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: '600',
     },
 });

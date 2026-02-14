@@ -1,7 +1,7 @@
 # Turn Pro Poker - Implementation Plan
 
-> **Status as of Feb 13, 2026**  
-> Phase 5 Batches 1–4 & UI Polish complete. Stats page filters done. Hands replayer enhanced with dealer button, bet chips, blinds, action ordering.  
+> **Status as of Feb 14, 2026**  
+> Phase 5 Batches 1–5 & UI Polish complete. Hand replayer fully functional with pot calculations, street progression, undo/redo navigation, action history with street separators, and community card dealing.  
 > **Next:** Remaining "coming soon" features, iOS build.
 
 ---
@@ -38,6 +38,9 @@
 - **Theme system** (COLORS, GRADIENTS, FONTS)
 - **Hands replayer UI** - 9-seat table, card/suit picker, action buttons/history
 - **Hands replayer enhancements** - dealer button per-seat (from index.html), bet chip pills, SB/BB blind posting, UTG-first preflop ordering
+- **Hands replayer logic** - pot calculations (stack restrictions, all-in side pots), street closing (check-around detection, aggressor tracking), community card dealing flow (auto-open board modal, waitingForBoard action gating)
+- **Hands replayer navigation** - undo/redo with full state snapshots (cross-street restore of community cards, waitingForBoard), New Hand quick reset button (top-right corner)
+- **Hands replayer UX** - action history street separators (PREFLOP/FLOP/TURN/RIVER dividers), unknown card (?) in card picker, bet sizing modal with stack restrictions
 - **Toast notification system** - replaced ~25 Alert.alert calls with dismissible toasts
 - **Error boundary** - class-based boundary wrapping app provider tree
 - **Skeleton loaders** - dashboard, stats, bankroll screens
@@ -88,11 +91,11 @@ flowchart LR
 **Stats ✅ Done:** FilterChips, PrivacyContext, skeleton loader, chart, pull-to-refresh.  
 **UI Polish ✅ Done:** Toasts, error boundary, skeletons, header cleanup, tab lazy loading.
 
-**Hands Replayer ✅ Done:** Dealer button per-seat (index.html values), bet chip pills, SB/BB posting, UTG-first ordering.
+**Hands Replayer ✅ Done:** Full game logic — pot calculations with stack restrictions, street closing with check-around detection, community card dealing (auto-modal, waitingForBoard gating), undo/redo navigation with cross-street state snapshots, action history with street separators, unknown card picker, New Hand reset button.
 
 **Next Steps:**
-1. Hand replayer animations (Share/Play currently "coming soon")
-2. Build out "coming soon" features (Locations, Calendar, Player Profiles, Notepad, PDF Export)
+1. Build out "coming soon" features (Locations, Calendar, Player Profiles, Notepad, PDF Export)
+2. Hand replayer animations (Share/Play currently "coming soon")
 3. iOS build + TestFlight testing
 4. Fix pre-existing test failures, increase coverage
 
@@ -214,6 +217,12 @@ cd frontend && npm test -- --coverage
 - `frontend/assets/images/turn-pro-logo-transparent.png` - Logo (transparent PNG)
 - `frontend/app/(tabs)/` - Main screens ✅ (sessions page with swipe gestures)
 - `frontend/components/replayer/PokerTable.tsx` - Poker table replayer (9-seat, dealer, chips) ✅
+- `frontend/components/replayer/ActionButtons.tsx` - Fold/Check/Call/Bet/Raise (disabled during board dealing) ✅
+- `frontend/components/replayer/ActionHistoryModal.tsx` - Action log with street separators ✅
+- `frontend/components/replayer/ActionHistory.tsx` - ActionRecord types with street, prevState snapshots ✅
+- `frontend/components/replayer/BetSizingModal.tsx` - Bet/raise sizing with stack restrictions ✅
+- `frontend/components/replayer/Card.tsx` - Card renderer (with unknown '?' card support) ✅
+- `frontend/components/replayer/SeatModal.tsx` - Card/suit picker with unknown card button ✅
 - `.agent/workflows/safe-edit.md` - Safe code editing workflow (git-based reverts) ✅
 
 **Configuration:**
@@ -225,9 +234,9 @@ cd frontend && npm test -- --coverage
 
 ## Next 3 Steps
 
-1. **Hand replayer animations** — implement Share + Play button functionality (currently "coming soon")
-2. **"Coming soon" features** — Locations page, Calendar view, Player Profiles
-3. **iOS build** — configure bundle ID, EAS build, TestFlight testing
+1. **"Coming soon" features** — Locations page, Calendar view, Player Profiles, Notepad, PDF Export
+2. **iOS build** — configure bundle ID, EAS build, TestFlight testing
+3. **Testing & QA** — fix pre-existing test failures, increase coverage, E2E tests
 
 **For detailed documentation, see:**
 - [Next Phase.md](file:///c:/Users/USER/Desktop/Turn-Pro-Poker/Next%20Phase.md)

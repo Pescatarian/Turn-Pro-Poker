@@ -34,6 +34,15 @@ export const Card: React.FC<CardProps> = ({ rank, suit, hidden = false, revealed
         );
     }
 
+    // Unknown card — user doesn't remember what it was
+    if (rank === '?') {
+        return (
+            <View style={[sizeStyle, { backgroundColor: '#444', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 4 }, style]}>
+                <Text style={[styles.rank, size === 'small' && styles.rankSmall, { color: '#aaa' }]}>?</Text>
+            </View>
+        );
+    }
+
     // Empty slot (dashed border, no card assigned)
     if (!rank || !suit) {
         return (

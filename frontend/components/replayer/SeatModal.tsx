@@ -10,11 +10,11 @@ const SUITS: { key: string; symbol: string; color: string }[] = [
     { key: 'c', symbol: '♣', color: '#10b981' },
 ];
 
-// Split ranks into rows of 5-5-3
+// Split ranks into rows of 5-5-4 (including ? for unknown)
 const RANK_ROWS = [
     RANKS.slice(0, 5),   // A K Q J T
     RANKS.slice(5, 10),  // 9 8 7 6 5
-    RANKS.slice(10, 13), // 4 3 2
+    [...RANKS.slice(10, 13), '?'], // 4 3 2 ?
 ];
 
 interface SeatModalProps {
@@ -120,14 +120,22 @@ export const SeatModal: React.FC<SeatModalProps> = ({
                             {RANK_ROWS.map((row, rowIdx) => (
                                 <View key={rowIdx} style={styles.rankRow}>
                                     {row.map(rank => {
+                                        const isUnknown = rank === '?';
                                         const isSelected = selectedRank === rank;
                                         return (
                                             <TouchableOpacity
                                                 key={rank}
-                                                style={[styles.rankCard, isSelected && styles.rankCardSelected]}
-                                                onPress={() => handleSelectRank(rank)}
+                                                style={[styles.rankCard, isUnknown && { backgroundColor: '#555' }, isSelected && styles.rankCardSelected]}
+                                                onPress={() => {
+                                                    if (isUnknown) {
+                                                        onCardAssigned('??');
+                                                        setSelectedRank(null);
+                                                    } else {
+                                                        handleSelectRank(rank);
+                                                    }
+                                                }}
                                             >
-                                                <Text style={[styles.rankText, isSelected && styles.rankTextSelected]}>
+                                                <Text style={[styles.rankText, isUnknown && { color: '#fff' }, isSelected && styles.rankTextSelected]}>
                                                     {rank}
                                                 </Text>
                                             </TouchableOpacity>

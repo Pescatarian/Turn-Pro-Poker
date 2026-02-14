@@ -8,6 +8,7 @@ export interface ActionRecord {
     player: string;
     action: string;
     amount?: number;
+    street?: string;
 }
 
 interface ActionHistoryModalProps {
@@ -22,6 +23,13 @@ const ACTION_STYLES: Record<string, { bg: string; color: string }> = {
     call: { bg: 'rgba(16,185,129,0.2)', color: '#10b981' },
     bet: { bg: 'rgba(212,175,55,0.2)', color: '#d4af37' },
     raise: { bg: 'rgba(239,68,68,0.2)', color: '#ef4444' },
+};
+
+const STREET_LABELS: Record<string, string> = {
+    preflop: 'PREFLOP',
+    flop: 'FLOP',
+    turn: 'TURN',
+    river: 'RIVER',
 };
 
 export const ActionHistoryModal: React.FC<ActionHistoryModalProps> = ({ visible, actions, onClose }) => {
@@ -60,14 +68,27 @@ export const ActionHistoryModal: React.FC<ActionHistoryModalProps> = ({ visible,
                             actions.map((a, index) => {
                                 const s = ACTION_STYLES[a.action] || ACTION_STYLES.fold;
                                 const label = a.amount ? `${a.action} $${a.amount}` : a.action;
+                                const prevStreet = index > 0 ? actions[index - 1].street : undefined;
+                                const showSeparator = a.street && (index === 0 || a.street !== prevStreet);
                                 return (
-                                    <View key={a.id} style={styles.actionRow}>
-                                        <Text style={styles.actionIndex}>{index + 1}</Text>
-                                        <View style={[styles.actionPill, { backgroundColor: s.bg }]}>
-                                            <Text style={styles.playerText}>{a.player}</Text>
-                                            <Text style={[styles.actionLabel, { color: s.color }]}>{label}</Text>
+                                    <React.Fragment key={a.id}>
+                                        {showSeparator && (
+                                            <View style={styles.streetSeparator}>
+                                                <View style={styles.streetLine} />
+                                                <Text style={styles.streetLabel}>
+                                                    {STREET_LABELS[a.street!] || a.street!.toUpperCase()}
+                                                </Text>
+                                                <View style={styles.streetLine} />
+                                            </View>
+                                        )}
+                                        <View style={styles.actionRow}>
+                                            <Text style={styles.actionIndex}>{index + 1}</Text>
+                                            <View style={[styles.actionPill, { backgroundColor: s.bg }]}>
+                                                <Text style={styles.playerText}>{a.player}</Text>
+                                                <Text style={[styles.actionLabel, { color: s.color }]}>{label}</Text>
+                                            </View>
                                         </View>
-                                    </View>
+                                    </React.Fragment>
                                 );
                             })
                         )}
@@ -168,5 +189,22 @@ const styles = StyleSheet.create({
     emptyText: {
         color: '#666',
         fontSize: 14,
+    },
+    streetSeparator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginVertical: 6,
+    },
+    streetLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.12)',
+    },
+    streetLabel: {
+        color: '#9aa3a8',
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 1,
     },
 });

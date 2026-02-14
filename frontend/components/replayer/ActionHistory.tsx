@@ -6,6 +6,24 @@ export interface ActionRecord {
     player: string;
     action: string;
     amount?: number;
+    street?: string;
+    /** Snapshot of state before this action, for clean undo */
+    prevState?: {
+        seats: import('../../components/replayer/PokerTable').SeatData[];
+        pot: number;
+        pots: PotInfo[];
+        activeSeatIndex: number;
+        currentStreet: Street;
+        lastAggressorIndex: number | null;
+        communityCards: string[];
+        waitingForBoard: boolean;
+    };
+}
+
+export type Street = 'preflop' | 'flop' | 'turn' | 'river' | 'showdown';
+export interface PotInfo {
+    amount: number;
+    eligible: number[]; // seat indices eligible for this pot
 }
 
 interface ActionHistoryProps {
@@ -18,6 +36,7 @@ const ACTION_STYLES: Record<string, { bg: string; color: string }> = {
     call: { bg: 'rgba(16,185,129,0.2)', color: '#10b981' },
     bet: { bg: 'rgba(212,175,55,0.2)', color: '#10b981' },
     raise: { bg: 'rgba(239,68,68,0.2)', color: '#ef4444' },
+    'all-in': { bg: 'rgba(239,68,68,0.3)', color: '#ff6b6b' },
 };
 
 export const ActionHistory: React.FC<ActionHistoryProps> = ({ actions }) => {

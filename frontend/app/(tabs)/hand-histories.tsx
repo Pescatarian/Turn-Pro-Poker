@@ -4,7 +4,7 @@ import { ScreenWrapper } from '../../components/ui/ScreenWrapper';
 import { PokerTable, SeatData } from '../../components/replayer/PokerTable';
 import { SeatModal } from '../../components/replayer/SeatModal';
 import { ActionButtons, ActionType } from '../../components/replayer/ActionButtons';
-import { ActionRecord } from '../../components/replayer/ActionHistory';
+import { ActionRecord, Street, PotInfo } from '../../components/replayer/ActionHistory';
 import { ActionHistoryModal } from '../../components/replayer/ActionHistoryModal';
 import { NotesModal } from '../../components/replayer/NotesModal';
 import { PlaybackControls } from '../../components/replayer/PlaybackControls';
@@ -34,6 +34,7 @@ function makeDefaultSeats(tableSize: number, sb: number, bb: number): SeatData[]
         isDealer: pos === 'BTN',
         isFolded: false,
         isActive: true,
+        isAllIn: false,
         currentBet: pos === 'SB' ? sb : pos === 'BB' ? bb : 0,
     }));
 }
@@ -46,9 +47,74 @@ function parseStakes(stakes: string): { sb: number; bb: number } {
 
 // Preflop action starts at the first seat after BB (UTG)
 function getInitialActiveIndex(tableSize: number): number {
-    // BB is always at index 2, so first-to-act preflop = index 3
-    // For 3-max: (3) % 3 = 0 (BTN), which is correct
     return 3 % tableSize;
+}
+
+// Postflop action starts at first non-folded, non-all-in seat after dealer (SB or next)
+function getPostflopFirstActor(seats: SeatData[], tableSize: number): number {
+    // Dealer is at index 0 (BTN). SB=1, BB=2, etc.
+    for (let i = 1; i < tableSize; i++) {
+        const idx = i % tableSize;
+        if (!seats[idx].isFolded && !seats[idx].isAllIn) return idx;
+    }
+    // Everyone is folded or all-in — return 0 as fallback
+    return 0;
+}
+
+const NEXT_STREET: Record<Street, Street> = {
+    preflop: 'flop',
+    flop: 'turn',
+    turn: 'river',
+    river: 'showdown',
+    showdown: 'showdown',
+};
+
+// Calculate side pots from per-seat total bets this street
+function calculateSidePots(seats: SeatData[]): PotInfo[] {
+    // Gather bets from non-folded seats that have bet something
+    const bettors = seats
+        .map((s, i) => ({ index: i, bet: s.currentBet, folded: s.isFolded }))
+        .filter(b => b.bet > 0);
+
+    if (bettors.length === 0) return [];
+
+    // Get unique bet levels from all-in players (they cap sub-pots)
+    const allInLevels = seats
+        .map((s, i) => ({ index: i, bet: s.currentBet, isAllIn: s.isAllIn }))
+        .filter(b => b.isAllIn && b.bet > 0)
+        .map(b => b.bet)
+        .sort((a, b) => a - b);
+
+    // Add the max bet level for the main group
+    const maxBet = Math.max(...bettors.map(b => b.bet));
+    const levels = [...new Set([...allInLevels, maxBet])].sort((a, b) => a - b);
+
+    const pots: PotInfo[] = [];
+    let prevLevel = 0;
+
+    for (const level of levels) {
+        const slice = level - prevLevel;
+        if (slice <= 0) continue;
+
+        // Count how many players contribute at this level
+        const eligible: number[] = [];
+        let potAmount = 0;
+        for (const b of bettors) {
+            if (b.bet >= level && !b.folded) {
+                eligible.push(b.index);
+            }
+            // Each bettor contributes min(their remaining bet above prevLevel, slice)
+            const contribution = Math.min(Math.max(b.bet - prevLevel, 0), slice);
+            potAmount += contribution;
+        }
+
+        if (potAmount > 0) {
+            pots.push({ amount: potAmount, eligible });
+        }
+        prevLevel = level;
+    }
+
+    return pots;
 }
 
 export default function HandHistoriesScreen() {
@@ -61,7 +127,13 @@ export default function HandHistoriesScreen() {
     // Seats state
     const [seats, setSeats] = useState<SeatData[]>(makeDefaultSeats(9, 5, 10));
     const [communityCards, setCommunityCards] = useState<string[]>(['', '', '', '', '']);
-    const [pot, setPot] = useState(5 + 10); // SB + BB
+    const [pot, setPot] = useState(0); // collected pot (blinds tracked in currentBet)
+    const [pots, setPots] = useState<PotInfo[]>([]); // side pots (empty = single pot)
+    const [currentStreet, setCurrentStreet] = useState<Street>('preflop');
+    // Last aggressor: seat index that made the last bet/raise. Preflop: BB (index 2).
+    const [lastAggressorIndex, setLastAggressorIndex] = useState<number | null>(2);
+    // Whether we're waiting for community cards before action can continue
+    const [waitingForBoard, setWaitingForBoard] = useState(false);
 
     // Seat Modal state
     const [seatModalVisible, setSeatModalVisible] = useState(false);
@@ -74,6 +146,7 @@ export default function HandHistoriesScreen() {
 
     // Action history & notes
     const [actions, setActions] = useState<ActionRecord[]>([]);
+    const [redoStack, setRedoStack] = useState<ActionRecord[]>([]);
     const [notes, setNotes] = useState('');
 
     // Display toggles & modals
@@ -123,14 +196,18 @@ export default function HandHistoriesScreen() {
         setTableSize(prev => {
             const next = Math.max(3, Math.min(9, prev + delta));
             if (next !== prev) {
-                // Reset seats, actions, etc. when table size changes
                 const { sb: newSb, bb: newBb } = parseStakes(stakes);
                 setSeats(makeDefaultSeats(next, newSb, newBb));
                 setActions([]);
                 setActiveSeatIndex(getInitialActiveIndex(next));
                 setUsedCards({});
                 setCommunityCards(['', '', '', '', '']);
-                setPot(newSb + newBb);
+                setPot(0);
+                setPots([]);
+                setCurrentStreet('preflop');
+                setLastAggressorIndex(2);
+                setWaitingForBoard(false);
+                setRedoStack([]);
             }
             return next;
         });
@@ -176,15 +253,20 @@ export default function HandHistoriesScreen() {
             });
             setUsedCards(prev => ({ ...prev, [card]: 'Board' }));
 
-            // Auto-advance to next empty slot
-            const nextEmpty = communityCards.findIndex((c, i) => i > currentBoardSlot && !c);
+            // Determine which street's slots we're filling
+            // Flop = 0,1,2; Turn = 3; River = 4
+            const streetEnd = currentBoardSlot < 3 ? 2 : currentBoardSlot; // flop ends at 2, turn/river at their slot
+
+            // Auto-advance to next empty slot within this street's range
+            const nextEmpty = communityCards.findIndex((c, i) => i > currentBoardSlot && i <= streetEnd && !c);
             if (nextEmpty !== -1) {
                 setCurrentBoardSlot(nextEmpty);
             } else {
-                // All slots filled — close modal
+                // This street's cards are filled — close modal and resume action
                 setSeatModalVisible(false);
                 setCurrentBoardSlot(null);
                 setIsBoardMode(false);
+                setWaitingForBoard(false);
             }
         } else if (selectedSeatIndex !== null) {
             // Seat hole card mode
@@ -219,10 +301,11 @@ export default function HandHistoriesScreen() {
                 return {
                     ...seat,
                     position: newPosition,
-                    isHero: seatIndex === 0,            // seat 0 = hero (6 o'clock)
-                    isDealer: newPosition === 'BTN',    // dealer chip follows BTN label
+                    isHero: seatIndex === 0,
+                    isDealer: newPosition === 'BTN',
                     currentBet: newBet,
-                    stack: seat.cards.length > 0 ? seat.stack : 1000 - newBet, // only reset stack if no cards assigned yet
+                    stack: seat.cards.length > 0 ? seat.stack : 1000 - newBet,
+                    isAllIn: false,
                 };
             });
         });
@@ -237,22 +320,94 @@ export default function HandHistoriesScreen() {
 
     }, [selectedSeatIndex, seats, tableSize, showToast, sb, bb]);
 
-    // Helper: advance to next non-folded seat
-    const advanceSeat = useCallback(() => {
+    // Helper: advance to next non-folded, non-all-in seat
+    // Also detects street end and handles pot collection + street transition
+    const advanceSeat = useCallback((updatedSeats?: SeatData[]) => {
+        const seatsNow = updatedSeats || seats;
+
+        const activePlayers = seatsNow.filter(s => !s.isFolded && !s.isAllIn);
+        const nonFoldedPlayers = seatsNow.filter(s => !s.isFolded);
+
+        // Hand over: only 1 non-folded player
+        if (nonFoldedPlayers.length <= 1) {
+            setCurrentStreet('showdown');
+            return;
+        }
+
+        // Find next seat that can act
         let nextIndex = (activeSeatIndex + 1) % tableSize;
         let attempts = 0;
-        while (seats[nextIndex].isFolded && attempts < tableSize) {
+        while ((seatsNow[nextIndex].isFolded || seatsNow[nextIndex].isAllIn) && attempts < tableSize) {
             nextIndex = (nextIndex + 1) % tableSize;
             attempts++;
         }
+
+        // All active players all-in: collect and advance street
+        if (activePlayers.length === 0 && nonFoldedPlayers.length > 1) {
+            collectAndAdvance(seatsNow);
+            return;
+        }
+
+        // Street closing: if next to act is the last aggressor AND all bets are matched
+        // This means everyone has had a chance to act since the last raise
+        if (lastAggressorIndex !== null && nextIndex === lastAggressorIndex) {
+            const highBet = Math.max(...nonFoldedPlayers.map(s => s.currentBet));
+            const allMatched = activePlayers.every(s => s.currentBet === highBet);
+            if (allMatched) {
+                collectAndAdvance(seatsNow);
+                return;
+            }
+        }
+
         setActiveSeatIndex(nextIndex);
-    }, [activeSeatIndex, seats, tableSize]);
+    }, [activeSeatIndex, seats, tableSize, lastAggressorIndex]);
+
+    // Collect bets from current street and advance to next
+    const collectAndAdvance = useCallback((seatsNow: SeatData[]) => {
+        const totalCollected = seatsNow.reduce((sum, s) => sum + s.currentBet, 0);
+        const sidePots = calculateSidePots(seatsNow);
+        const newSeats = seatsNow.map(s => ({ ...s, currentBet: 0 }));
+        setSeats(newSeats);
+        setPot(prev => prev + totalCollected);
+        if (sidePots.length > 0) {
+            setPots(prev => [...prev, ...sidePots]);
+        }
+        setCurrentStreet(prev => NEXT_STREET[prev]);
+        // Set first actor as default aggressor so check-arounds close the street
+        const firstActor = getPostflopFirstActor(newSeats, tableSize);
+        setLastAggressorIndex(firstActor);
+        setActiveSeatIndex(firstActor);
+
+        // Auto-open board modal for the next street's community cards
+        // Flop = slots 0,1,2; Turn = slot 3; River = slot 4
+        const nextStreet = NEXT_STREET[currentStreet];
+        const boardSlot = nextStreet === 'flop' ? 0 : nextStreet === 'turn' ? 3 : nextStreet === 'river' ? 4 : null;
+        if (boardSlot !== null) {
+            setWaitingForBoard(true);
+            setCurrentBoardSlot(boardSlot);
+            setIsBoardMode(true);
+            setSelectedSeatIndex(null);
+            setSeatModalVisible(true);
+        }
+    }, [tableSize, currentStreet]);
+
+    // Create state snapshot for undo
+    const makeSnapshot = useCallback(() => ({
+        seats: seats.map(s => ({ ...s })),
+        pot,
+        pots: pots.map(p => ({ ...p, eligible: [...p.eligible] })),
+        activeSeatIndex,
+        currentStreet,
+        lastAggressorIndex,
+        communityCards: [...communityCards],
+        waitingForBoard,
+    }), [seats, pot, pots, activeSeatIndex, currentStreet, lastAggressorIndex, communityCards, waitingForBoard]);
 
     const handleAction = useCallback((actionType: ActionType) => {
         const seat = seats[activeSeatIndex];
+        const snapshot = makeSnapshot();
 
         if (actionType === 'bet' || actionType === 'raise') {
-            // Open bet sizing modal instead of recording immediately
             setPendingBetAction(actionType === 'bet' ? 'bet' : 'raise');
             setBetSizingVisible(true);
             return;
@@ -263,37 +418,45 @@ export default function HandHistoriesScreen() {
                 id: `${Date.now()}-${Math.random()}`,
                 player: seat.position,
                 action: 'fold',
+                street: currentStreet,
+                prevState: snapshot,
             };
             setActions(prev => [...prev, record]);
-            setSeats(prev => {
-                const next = [...prev];
-                next[activeSeatIndex] = { ...next[activeSeatIndex], isFolded: true };
-                return next;
-            });
-            advanceSeat();
+            setRedoStack([]);
+            const newSeats = [...seats];
+            newSeats[activeSeatIndex] = { ...newSeats[activeSeatIndex], isFolded: true };
+            setSeats(newSeats);
+            advanceSeat(newSeats);
             return;
         }
 
         if (actionType === 'call') {
-            const toCall = facingBet - seat.currentBet;
+            let toCall = facingBet - seat.currentBet;
+            let isAllIn = false;
+            // Stack restriction: can't call more than stack
+            if (toCall >= seat.stack) {
+                toCall = seat.stack;
+                isAllIn = true;
+            }
             const record: ActionRecord = {
                 id: `${Date.now()}-${Math.random()}`,
                 player: seat.position,
-                action: 'call',
+                action: isAllIn ? 'all-in' : 'call',
                 amount: toCall,
+                street: currentStreet,
+                prevState: snapshot,
             };
             setActions(prev => [...prev, record]);
-            setSeats(prev => {
-                const next = [...prev];
-                next[activeSeatIndex] = {
-                    ...next[activeSeatIndex],
-                    currentBet: facingBet,
-                    stack: next[activeSeatIndex].stack - toCall,
-                };
-                return next;
-            });
-            setPot(prev => prev + toCall);
-            advanceSeat();
+            setRedoStack([]);
+            const newSeats = [...seats];
+            newSeats[activeSeatIndex] = {
+                ...newSeats[activeSeatIndex],
+                currentBet: seat.currentBet + toCall,
+                stack: seat.stack - toCall,
+                isAllIn,
+            };
+            setSeats(newSeats);
+            advanceSeat(newSeats);
             return;
         }
 
@@ -302,38 +465,48 @@ export default function HandHistoriesScreen() {
                 id: `${Date.now()}-${Math.random()}`,
                 player: seat.position,
                 action: 'check',
+                street: currentStreet,
+                prevState: snapshot,
             };
             setActions(prev => [...prev, record]);
+            setRedoStack([]);
             advanceSeat();
             return;
         }
-    }, [activeSeatIndex, seats, tableSize, facingBet, advanceSeat]);
+    }, [activeSeatIndex, seats, tableSize, facingBet, advanceSeat, makeSnapshot]);
 
     // Bet/Raise confirmed from modal
     const handleBetConfirm = useCallback((amount: number) => {
         setBetSizingVisible(false);
         const seat = seats[activeSeatIndex];
-        const additionalCost = amount - seat.currentBet; // how much more from stack
+        const snapshot = makeSnapshot();
+        const additionalCost = amount - seat.currentBet;
+        const isAllIn = additionalCost >= seat.stack;
+        const actualCost = Math.min(additionalCost, seat.stack);
+        const actualBet = seat.currentBet + actualCost;
 
         const record: ActionRecord = {
             id: `${Date.now()}-${Math.random()}`,
             player: seat.position,
-            action: pendingBetAction,
-            amount: amount,
+            action: isAllIn ? 'all-in' : pendingBetAction,
+            amount: actualBet,
+            street: currentStreet,
+            prevState: snapshot,
         };
         setActions(prev => [...prev, record]);
-        setSeats(prev => {
-            const next = [...prev];
-            next[activeSeatIndex] = {
-                ...next[activeSeatIndex],
-                currentBet: amount,
-                stack: next[activeSeatIndex].stack - additionalCost,
-            };
-            return next;
-        });
-        setPot(prev => prev + additionalCost);
-        advanceSeat();
-    }, [activeSeatIndex, seats, pendingBetAction, advanceSeat]);
+        setRedoStack([]);
+        const newSeats = [...seats];
+        newSeats[activeSeatIndex] = {
+            ...newSeats[activeSeatIndex],
+            currentBet: actualBet,
+            stack: seat.stack - actualCost,
+            isAllIn,
+        };
+        setSeats(newSeats);
+        // Bet/raise = aggressive action → set last aggressor
+        setLastAggressorIndex(activeSeatIndex);
+        advanceSeat(newSeats);
+    }, [activeSeatIndex, seats, pendingBetAction, advanceSeat, makeSnapshot]);
 
     const handleBetCancel = useCallback(() => {
         setBetSizingVisible(false);
@@ -347,88 +520,97 @@ export default function HandHistoriesScreen() {
         showToast('Replay animation coming soon', 'info');
     }, []);
 
+    const handleNewHand = useCallback(() => {
+        const { sb: curSb, bb: curBb } = parseStakes(stakes);
+        setSeats(makeDefaultSeats(tableSize, curSb, curBb));
+        setActions([]);
+        setActiveSeatIndex(getInitialActiveIndex(tableSize));
+        setUsedCards({});
+        setCommunityCards(['', '', '', '', '']);
+        setPot(0);
+        setPots([]);
+        setCurrentStreet('preflop');
+        setLastAggressorIndex(2);
+        setRedoStack([]);
+        setWaitingForBoard(false);
+    }, [stakes, tableSize]);
+
     const handlePrev = useCallback(() => {
         if (actions.length === 0) return;
-        // Remove last action
         const lastAction = actions[actions.length - 1];
         setActions(prev => prev.slice(0, -1));
+        setRedoStack(prev => [...prev, lastAction]); // push to redo
 
+        // Snapshot-based undo: restore entire previous state
+        if (lastAction.prevState) {
+            setSeats(lastAction.prevState.seats);
+            setPot(lastAction.prevState.pot);
+            setPots(lastAction.prevState.pots);
+            setActiveSeatIndex(lastAction.prevState.activeSeatIndex);
+            setCurrentStreet(lastAction.prevState.currentStreet);
+            setLastAggressorIndex(lastAction.prevState.lastAggressorIndex);
+            setCommunityCards(lastAction.prevState.communityCards);
+            setWaitingForBoard(lastAction.prevState.waitingForBoard);
+            return;
+        }
+
+        // Fallback for old actions without snapshots
         const seatIdx = seats.findIndex(s => s.position === lastAction.player);
         if (seatIdx === -1) return;
-
-        // Un-fold if it was a fold
+        setActiveSeatIndex(seatIdx);
         if (lastAction.action === 'fold') {
             setSeats(prev => {
                 const next = [...prev];
                 next[seatIdx] = { ...next[seatIdx], isFolded: false };
                 return next;
             });
-            setActiveSeatIndex(seatIdx);
         }
-
-        // Undo call: reverse the amount
-        if (lastAction.action === 'call' && lastAction.amount) {
-            setSeats(prev => {
-                const next = [...prev];
-                next[seatIdx] = {
-                    ...next[seatIdx],
-                    currentBet: next[seatIdx].currentBet - lastAction.amount!,
-                    stack: next[seatIdx].stack + lastAction.amount!,
-                };
-                return next;
-            });
-            setPot(prev => prev - lastAction.amount!);
-            setActiveSeatIndex(seatIdx);
-        }
-
-        // Undo bet/raise: reverse the amount
-        if ((lastAction.action === 'bet' || lastAction.action === 'raise') && lastAction.amount) {
-            const prevBet = seats[seatIdx].currentBet; // currently the bet amount
-            // We need to figure out how much was added. The record.amount is the total bet.
-            // The additional cost was (record.amount - previous currentBet before the bet).
-            // Since we don't store previous currentBet, we'll use the difference
-            // Actually: currentBet is now lastAction.amount, stack was reduced by (amount - prevCurrentBet)
-            // We can approximate: just set currentBet to 0 if it was a bet, or to the previous facing bet for raise
-            // Simplest: record amount in the action, then reverse
-            setSeats(prev => {
-                const next = [...prev];
-                // Restore: we added (lastAction.amount - previousCurrentBet) to the pot.
-                // previousCurrentBet can be calculated from: stack_now + additionalCost = stack_before
-                // For simplicity, reset currentBet based on position (SB/BB get their blind back)
-                const pos = next[seatIdx].position;
-                const originalBet = pos === 'SB' ? sb : pos === 'BB' ? bb : 0;
-                const additionalCost = lastAction.amount! - originalBet;
-                next[seatIdx] = {
-                    ...next[seatIdx],
-                    currentBet: originalBet,
-                    stack: next[seatIdx].stack + additionalCost,
-                };
-                return next;
-            });
-            // Reverse pot
-            const pos = seats[seatIdx].position;
-            const originalBet = pos === 'SB' ? sb : pos === 'BB' ? bb : 0;
-            const additionalCost = lastAction.amount! - originalBet;
-            setPot(prev => prev - additionalCost);
-            setActiveSeatIndex(seatIdx);
-        }
-
-        // Undo check: just move active seat back
-        if (lastAction.action === 'check') {
-            setActiveSeatIndex(seatIdx);
-        }
-    }, [actions, tableSize, seats, sb, bb]);
+    }, [actions, seats]);
 
     const handleNext = useCallback(() => {
-        // Same as advancing seat
-        let nextIndex = (activeSeatIndex + 1) % tableSize;
-        let attempts = 0;
-        while (seats[nextIndex].isFolded && attempts < tableSize) {
-            nextIndex = (nextIndex + 1) % tableSize;
-            attempts++;
+        if (redoStack.length === 0) return;
+        const action = redoStack[redoStack.length - 1];
+        setRedoStack(prev => prev.slice(0, -1));
+        setActions(prev => [...prev, action]);
+
+        // Re-apply the action by looking at current state + action details
+        // Since the action's prevState IS our current state, we can derive the result
+        // Simply: apply the action effect
+        const seatIdx = seats.findIndex(s => s.position === action.player);
+        if (seatIdx === -1) return;
+
+        if (action.action === 'fold') {
+            const newSeats = [...seats];
+            newSeats[seatIdx] = { ...newSeats[seatIdx], isFolded: true };
+            setSeats(newSeats);
+            advanceSeat(newSeats);
+        } else if (action.action === 'check') {
+            advanceSeat();
+        } else if (action.action === 'call' && action.amount) {
+            const newSeats = [...seats];
+            newSeats[seatIdx] = {
+                ...newSeats[seatIdx],
+                currentBet: seats[seatIdx].currentBet + action.amount,
+                stack: seats[seatIdx].stack - action.amount,
+            };
+            setSeats(newSeats);
+            advanceSeat(newSeats);
+        } else if ((action.action === 'bet' || action.action === 'raise' || action.action === 'all-in') && action.amount) {
+            const additionalCost = action.amount - seats[seatIdx].currentBet;
+            const actualCost = Math.min(additionalCost, seats[seatIdx].stack);
+            const isAllIn = actualCost >= seats[seatIdx].stack;
+            const newSeats = [...seats];
+            newSeats[seatIdx] = {
+                ...newSeats[seatIdx],
+                currentBet: action.amount,
+                stack: seats[seatIdx].stack - actualCost,
+                isAllIn,
+            };
+            setSeats(newSeats);
+            setLastAggressorIndex(seatIdx);
+            advanceSeat(newSeats);
         }
-        setActiveSeatIndex(nextIndex);
-    }, [activeSeatIndex, seats, tableSize]);
+    }, [redoStack, seats, advanceSeat]);
 
     const modalPosition = isBoardMode
         ? 'Board'
@@ -442,12 +624,21 @@ export default function HandHistoriesScreen() {
         <ScreenWrapper hideHeader>
             <View style={styles.container}>
 
+                {/* New Hand — top right corner */}
+                <TouchableOpacity
+                    style={styles.newHandBtn}
+                    onPress={handleNewHand}
+                    activeOpacity={0.6}
+                >
+                    <Ionicons name="refresh-outline" size={18} color="#fff" />
+                </TouchableOpacity>
+
                 {/* Poker Table — fills available space */}
                 <View style={styles.tableContainer}>
                     <PokerTable
                         seats={seats}
                         communityCards={communityCards}
-                        pot={pot}
+                        pot={pot + seats.reduce((s, seat) => s + seat.currentBet, 0)}
                         stakes={stakes}
                         tableSize={tableSize}
                         onPressSeat={handlePressSeat}
@@ -471,6 +662,8 @@ export default function HandHistoriesScreen() {
                             <Ionicons name="list-outline" size={14} color="#9aa3a8" />
                             <Text style={styles.toolbarBtnText}>History</Text>
                         </TouchableOpacity>
+
+
 
                         {/* Notes button */}
                         <TouchableOpacity
@@ -525,14 +718,15 @@ export default function HandHistoriesScreen() {
                         </View>
                     </View>
 
-                    {/* Action Buttons */}
+                    {/* Action Buttons — disabled when waiting for community cards */}
                     <ActionButtons
                         onAction={handleAction}
-                        canCheck={canCheck}
-                        canCall={canCall}
-                        canBet={canBet}
-                        canRaise={canRaise}
+                        canCheck={!waitingForBoard && canCheck}
+                        canCall={!waitingForBoard && canCall}
+                        canBet={!waitingForBoard && canBet}
+                        canRaise={!waitingForBoard && canRaise}
                         callAmount={callAmount}
+                        disabled={waitingForBoard}
                     />
 
                     {/* Playback Controls */}
@@ -590,6 +784,19 @@ export default function HandHistoriesScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+
+    newHandBtn: {
+        position: 'absolute',
+        top: 8,
+        right: 12,
+        zIndex: 10,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 
     tableContainer: {

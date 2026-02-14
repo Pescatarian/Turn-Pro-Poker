@@ -17,6 +17,7 @@ export interface SeatData {
     isDealer: boolean;
     isFolded: boolean;
     isActive: boolean;
+    isAllIn: boolean;
     currentBet: number;
 }
 

@@ -1,6 +1,6 @@
 # Turn Pro Poker - Development Roadmap
 
-> **📍 Current Status:** Phase 5 Batches 1–3 & UI Polish complete. Stats page filters done. Hands replayer enhanced.
+> **📍 Current Status:** Phase 5 Batches 1–5 & UI Polish complete. Hand replayer fully functional.
 > **🎯 Next Priority:** Remaining "coming soon" features + iOS build
 
 ---
@@ -171,6 +171,21 @@
 ### UI Polish (Remaining)
 - [ ] Hand replayer animations (Share/Play buttons show "coming soon")
 
+### Batch 5: Hand Replayer Game Logic ✅ COMPLETE
+- [x] Pot calculations with stack restrictions (can't bet/call more than stack)
+- [x] All-in detection and side pot tracking (`PotInfo` with eligible seat indices)
+- [x] Street closing logic (check-around detection, last aggressor tracking)
+- [x] Community card dealing flow (auto-open board modal when street closes)
+- [x] `waitingForBoard` state — disables all action buttons (including fold) until board dealt
+- [x] Undo/redo navigation with full state snapshots (cross-street restore of community cards, waitingForBoard)
+- [x] Redo stack — forward button replays undone actions; new actions clear redo stack
+- [x] New Hand quick reset button (top-right floating icon)
+- [x] Action history street separators (PREFLOP/FLOP/TURN/RIVER dividers in modal)
+- [x] Unknown card (?) in card picker — renders as gray card on board
+- [x] Bet sizing modal with stack-restricted min/max
+- [x] `ActionRecord` includes `street` and `prevState` snapshot for full undo fidelity
+- [x] Table size change and new hand both clear redo stack
+
 ### More Page — "Coming Soon" Items
 - [ ] Player Profiles
 - [ ] Locations management page
@@ -276,9 +291,16 @@
 - Dealer button positioned per-seat (values from index.html prototype)
 - Bet chip pill display (SB/BB blind posting at preflop)
 - Preflop action ordering (UTG-first, skip posted blinds)
-- Action buttons (Fold/Check/Call/Bet/Raise)
-- Action history pills
-- Playback controls (Share, Play, ←/→ navigation)
+- Action buttons (Fold/Check/Call/Bet/Raise) — disabled during community card dealing
+- Pot calculations with stack restrictions and all-in side pots
+- Street closing logic (check-around, aggressor tracking)
+- Community card dealing (auto-open board modal, waitingForBoard gating)
+- Undo/redo navigation with full state snapshots (cross-street community card restore)
+- New Hand button (top-right floating icon for quick reset)
+- Action history modal with street separators (PREFLOP/FLOP/TURN/RIVER)
+- Unknown card (?) support in card picker and board rendering
+- Bet sizing modal with stack-restricted min/max
+- Playback controls (Share, Play, ←/→ undo/redo)
 
 ### Development Workflows
 - Safe-edit workflow (`.agent/workflows/safe-edit.md`) — git commit before/after edits, backup copies, git-based reverts

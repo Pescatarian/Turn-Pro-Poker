@@ -11,6 +11,7 @@ interface ActionButtonsProps {
     canBet: boolean;
     canRaise: boolean;
     callAmount?: number;
+    disabled?: boolean;
 }
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -20,16 +21,18 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     canBet,
     canRaise,
     callAmount,
+    disabled,
 }) => {
     return (
         <View style={styles.container}>
-            {/* Fold — always available */}
+            {/* Fold — always visible but can be disabled */}
             <TouchableOpacity
-                style={[styles.btn, { backgroundColor: '#6c757d' }]}
+                style={[styles.btn, { backgroundColor: disabled ? '#3a3a3a' : '#6c757d' }]}
                 onPress={() => onAction('fold')}
                 activeOpacity={0.7}
+                disabled={disabled}
             >
-                <Text style={[styles.label, { color: '#fff' }]}>Fold</Text>
+                <Text style={[styles.label, { color: disabled ? '#666' : '#fff' }]}>Fold</Text>
             </TouchableOpacity>
 
             {/* Check or Call (mutually exclusive) */}

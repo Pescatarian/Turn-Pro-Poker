@@ -47,13 +47,16 @@ function parseCard(c: string): { rank: string; suit: 'h' | 'd' | 'c' | 's' } | n
 type SeatPos = { style: Record<string, any> };
 
 // Stadium geometry (in % of container)
-// The seat path is slightly outside the felt for visual clearance.
+// The seat path wraps around just outside the felt area.
+// Felt is at: top=10%, left=15%, width=70%, height=80% → spans (15..85, 10..90)
+// Stadium total height = 2*halfH + 2*r, total width = 2*r
+// We want seats from about y=12% to y=88%, x=10% to x=90%
 const STADIUM = {
     cx: 50,    // center X %
     cy: 50,    // center Y %
-    halfW: 22, // half-width of the straight section (X extent of the rectangle part)
-    halfH: 34, // half-height (Y extent from center to top/bottom of straight section)
-    r: 22,     // radius of the semicircle caps (same as halfW for smooth stadium)
+    halfW: 20, // half-width of straight section = r for smooth stadium
+    halfH: 18, // half-height of straight section (center to where cap starts)
+    r: 20,     // radius of semicircle caps (= halfW)
 };
 
 // Total perimeter of the stadium:

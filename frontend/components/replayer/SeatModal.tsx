@@ -6,10 +6,10 @@ const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 // Use variation selector VS15 (\uFE0E) to force text rendering on Android
 // so the color style is respected instead of emoji default colors
 const SUITS: { key: string; symbol: string; color: string }[] = [
-    { key: 'h', symbol: '♥\uFE0E', color: '#ef4444' },
-    { key: 's', symbol: '♠\uFE0E', color: '#1a1a2e' },
-    { key: 'd', symbol: '♦\uFE0E', color: '#f97316' },
-    { key: 'c', symbol: '♣\uFE0E', color: '#22c55e' },
+    { key: 'h', symbol: '♥', color: '#ef4444' },
+    { key: 's', symbol: '♠', color: '#1a1a2e' },
+    { key: 'd', symbol: '♦', color: '#f97316' },
+    { key: 'c', symbol: '♣', color: '#22c55e' },
 ];
 
 // Split ranks into rows of 5-5-3
@@ -66,8 +66,7 @@ export const SeatModal: React.FC<SeatModalProps> = ({
         setSelectedRank(null);
     }, [localStack, stack, isBoardMode, onClose]);
 
-    // Title: "Community Cards" for board mode, "Seat XX" for seat mode
-    const title = isBoardMode ? 'Community Cards' : `Seat ${position}`;
+
 
     return (
         <Modal
@@ -85,7 +84,11 @@ export const SeatModal: React.FC<SeatModalProps> = ({
                     <View style={styles.splitContainer}>
                         {/* LEFT — Seat Info or Title */}
                         <View style={styles.leftPanel}>
-                            <Text style={styles.seatLabel}>{title}</Text>
+                            <Text style={styles.seatLabel}>
+                                {isBoardMode ? 'Community Cards' : (
+                                    <>Seat <Text style={styles.seatPos}>{position}</Text></>
+                                )}
+                            </Text>
 
                             {!isBoardMode && (
                                 <>
@@ -185,15 +188,17 @@ const styles = StyleSheet.create({
     /* ---- LEFT PANEL ---- */
     leftPanel: {
         flex: 1,
-        justifyContent: 'center',
         gap: 8,
     },
     seatLabel: {
         color: '#9aa3a8',
         fontSize: 16,
         fontWeight: '600',
-        textAlign: 'center',
         marginBottom: 4,
+    },
+    seatPos: {
+        color: '#fff',
+        fontWeight: '700',
     },
     actionBtn: {
         height: 36,
@@ -232,7 +237,6 @@ const styles = StyleSheet.create({
         flex: 1,
         gap: 5,
         alignItems: 'center',
-        justifyContent: 'center',
     },
     rankRow: {
         flexDirection: 'row',

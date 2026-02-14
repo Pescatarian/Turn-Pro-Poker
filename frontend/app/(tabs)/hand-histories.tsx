@@ -610,9 +610,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 3,
         paddingVertical: 5,
-        paddingHorizontal: 8,
+        paddingHorizontal: 7,
         borderRadius: 6,
         backgroundColor: 'rgba(255,255,255,0.04)',
+        flexShrink: 1,
+        minWidth: 0,
     },
     toolbarBtnActive: {
         backgroundColor: 'rgba(16,185,129,0.12)',
@@ -620,6 +622,7 @@ const styles = StyleSheet.create({
     toolbarBtnText: {
         color: '#9aa3a8',
         fontSize: 11,
+        flexShrink: 1,
     },
     toolbarBtnTextActive: {
         color: COLORS.accent,
@@ -645,12 +648,13 @@ const styles = StyleSheet.create({
         fontWeight: '800',
     },
 
-    // Stepper (inside toolbar, pushed right)
+    // Stepper (inside toolbar, pushed right — fixed size, never shrinks)
     stepperRow: {
         flexDirection: 'row',
         alignItems: 'center',
         marginLeft: 'auto',
-        gap: 6,
+        gap: 4,
+        flexShrink: 0,
     },
     stepperBtn: {
         width: 26,

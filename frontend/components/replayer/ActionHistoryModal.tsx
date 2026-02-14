@@ -29,16 +29,23 @@ export const ActionHistoryModal: React.FC<ActionHistoryModalProps> = ({ visible,
         <Modal
             visible={visible}
             transparent
-            animationType="slide"
+            animationType="fade"
             onRequestClose={onClose}
         >
             <View style={styles.overlay}>
                 <View style={styles.container}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.title}>Action History</Text>
-                        <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                            <Ionicons name="close" size={24} color={COLORS.text} />
+                        <View style={styles.headerLeft}>
+                            <Ionicons name="list-outline" size={18} color={COLORS.accent} />
+                            <Text style={styles.title}>Action History</Text>
+                        </View>
+                        <TouchableOpacity
+                            onPress={onClose}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            style={styles.closeBtn}
+                        >
+                            <Ionicons name="close" size={20} color="#999" />
                         </TouchableOpacity>
                     </View>
 
@@ -46,6 +53,7 @@ export const ActionHistoryModal: React.FC<ActionHistoryModalProps> = ({ visible,
                     <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
                         {actions.length === 0 ? (
                             <View style={styles.emptyState}>
+                                <Ionicons name="time-outline" size={32} color="#444" />
                                 <Text style={styles.emptyText}>No actions recorded yet</Text>
                             </View>
                         ) : (
@@ -73,35 +81,53 @@ export const ActionHistoryModal: React.FC<ActionHistoryModalProps> = ({ visible,
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
     },
     container: {
-        backgroundColor: '#1a1a1a',
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        maxHeight: '60%',
-        paddingBottom: 30,
+        width: '100%',
+        maxHeight: '70%',
+        backgroundColor: '#1e1e1e',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        overflow: 'hidden',
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,255,255,0.06)',
     },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
     title: {
-        color: COLORS.text,
+        color: '#fff',
         fontSize: 16,
         fontWeight: '700',
+    },
+    closeBtn: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     list: {
         flex: 1,
     },
     listContent: {
-        padding: 16,
-        gap: 8,
+        padding: 14,
+        gap: 6,
     },
     actionRow: {
         flexDirection: 'row',
@@ -136,7 +162,8 @@ const styles = StyleSheet.create({
     },
     emptyState: {
         alignItems: 'center',
-        paddingVertical: 30,
+        paddingVertical: 40,
+        gap: 10,
     },
     emptyText: {
         color: '#666',

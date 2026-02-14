@@ -40,71 +40,79 @@ function parseCard(c: string): { rank: string; suit: 'h' | 'd' | 'c' | 's' } | n
 
 // --- Seat Layout Definitions ---
 // Each entry: { style } for absolute positioning within the container.
-// Clockwise from bottom-center (6 o'clock).
+// Seat 0 = Hero = always at 6 o'clock (bottom center).
+// Remaining seats are evenly distributed clockwise around the perimeter.
 
 type SeatPos = { style: Record<string, any> };
 
+// --- 9-max: Hero at 6, then every 40° clockwise ---
 const LAYOUT_9: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 1: 6 o'clock (hero)
-    { style: { bottom: '18%', left: '2%' } },                                          // 2: ~7:30
-    { style: { top: '48%', left: '-2%', transform: [{ translateY: -30 }] } },          // 3: 9 o'clock
-    { style: { top: '18%', left: '2%' } },                                             // 4: ~10:30
-    { style: { top: '-2%', left: '22%', transform: [{ translateX: -20 }] } },          // 5: ~11
-    { style: { top: '-2%', right: '22%', transform: [{ translateX: 20 }] } },          // 6: ~1
-    { style: { top: '18%', right: '2%' } },                                            // 7: ~1:30
-    { style: { top: '48%', right: '-2%', transform: [{ translateY: -30 }] } },         // 8: 3 o'clock
-    { style: { bottom: '18%', right: '2%' } },                                         // 9: ~4:30
+    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00 (hero)
+    { style: { bottom: '12%', left: '0%' } },                                          // 1: ~7:20
+    { style: { top: '38%', left: '-4%', transform: [{ translateY: -30 }] } },          // 2: ~8:40
+    { style: { top: '10%', left: '2%' } },                                             // 3: ~10:00
+    { style: { top: '-4%', left: '22%' } },                                            // 4: ~11:20
+    { style: { top: '-4%', right: '22%' } },                                           // 5: ~12:40
+    { style: { top: '10%', right: '2%' } },                                            // 6: ~2:00
+    { style: { top: '38%', right: '-4%', transform: [{ translateY: -30 }] } },         // 7: ~3:20
+    { style: { bottom: '12%', right: '0%' } },                                         // 8: ~4:40
 ];
 
+// --- 8-max: Hero at 6, then every 45° clockwise ---
 const LAYOUT_8: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },
-    { style: { bottom: '18%', left: '2%' } },
-    { style: { top: '42%', left: '-2%', transform: [{ translateY: -30 }] } },
-    { style: { top: '10%', left: '10%' } },
-    { style: { top: '-2%', left: '50%', transform: [{ translateX: -35 }] } },
-    { style: { top: '10%', right: '10%' } },
-    { style: { top: '42%', right: '-2%', transform: [{ translateY: -30 }] } },
-    { style: { bottom: '18%', right: '2%' } },
+    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00
+    { style: { bottom: '14%', left: '0%' } },                                          // 1: ~7:30
+    { style: { top: '28%', left: '-2%', transform: [{ translateY: -30 }] } },          // 2: ~9:00
+    { style: { top: '2%', left: '12%' } },                                             // 3: ~10:30
+    { style: { top: '-4%', left: '50%', transform: [{ translateX: -35 }] } },          // 4: 12:00
+    { style: { top: '2%', right: '12%' } },                                            // 5: ~1:30
+    { style: { top: '28%', right: '-2%', transform: [{ translateY: -30 }] } },         // 6: ~3:00
+    { style: { bottom: '14%', right: '0%' } },                                         // 7: ~4:30
 ];
 
+// --- 7-max: Hero at 6, ~51° spacing ---
 const LAYOUT_7: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },
-    { style: { bottom: '18%', left: '2%' } },
-    { style: { top: '30%', left: '-2%', transform: [{ translateY: -30 }] } },
-    { style: { top: '-2%', left: '22%', transform: [{ translateX: -20 }] } },
-    { style: { top: '-2%', right: '22%', transform: [{ translateX: 20 }] } },
-    { style: { top: '30%', right: '-2%', transform: [{ translateY: -30 }] } },
-    { style: { bottom: '18%', right: '2%' } },
+    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00
+    { style: { bottom: '10%', left: '0%' } },                                          // 1: ~7:43
+    { style: { top: '16%', left: '-2%' } },                                            // 2: ~9:26
+    { style: { top: '-4%', left: '24%' } },                                            // 3: ~11:09
+    { style: { top: '-4%', right: '24%' } },                                           // 4: ~12:51
+    { style: { top: '16%', right: '-2%' } },                                           // 5: ~2:34
+    { style: { bottom: '10%', right: '0%' } },                                         // 6: ~4:17
 ];
 
+// --- 6-max: Hero at 6, every 60° ---
 const LAYOUT_6: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 6 o'clock
-    { style: { bottom: '18%', left: '2%' } },                                          // ~8
-    { style: { top: '18%', left: '2%' } },                                             // 10
-    { style: { top: '-2%', left: '50%', transform: [{ translateX: -35 }] } },          // 12
-    { style: { top: '18%', right: '2%' } },                                            // 2
-    { style: { bottom: '18%', right: '2%' } },                                         // ~4
+    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00
+    { style: { bottom: '10%', left: '0%' } },                                          // 1: ~8:00
+    { style: { top: '6%', left: '2%' } },                                              // 2: 10:00
+    { style: { top: '-4%', left: '50%', transform: [{ translateX: -35 }] } },          // 3: 12:00
+    { style: { top: '6%', right: '2%' } },                                             // 4: 2:00
+    { style: { bottom: '10%', right: '0%' } },                                         // 5: ~4:00
 ];
 
+// --- 5-max: Hero at 6, every 72° ---
 const LAYOUT_5: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },
-    { style: { top: '40%', left: '-2%', transform: [{ translateY: -30 }] } },
-    { style: { top: '-2%', left: '22%', transform: [{ translateX: -20 }] } },
-    { style: { top: '-2%', right: '22%', transform: [{ translateX: 20 }] } },
-    { style: { top: '40%', right: '-2%', transform: [{ translateY: -30 }] } },
+    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00
+    { style: { top: '30%', left: '-2%', transform: [{ translateY: -30 }] } },          // 1: ~8:24
+    { style: { top: '-2%', left: '16%' } },                                            // 2: ~10:48
+    { style: { top: '-2%', right: '16%' } },                                           // 3: ~1:12
+    { style: { top: '30%', right: '-2%', transform: [{ translateY: -30 }] } },         // 4: ~3:36
 ];
 
+// --- 4-max: Hero at 6, every 90° ---
 const LAYOUT_4: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },
-    { style: { top: '40%', left: '-2%', transform: [{ translateY: -30 }] } },
-    { style: { top: '-2%', left: '50%', transform: [{ translateX: -35 }] } },
-    { style: { top: '40%', right: '-2%', transform: [{ translateY: -30 }] } },
+    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00
+    { style: { top: '32%', left: '-4%', transform: [{ translateY: -30 }] } },          // 1: 9:00
+    { style: { top: '-4%', left: '50%', transform: [{ translateX: -35 }] } },          // 2: 12:00
+    { style: { top: '32%', right: '-4%', transform: [{ translateY: -30 }] } },         // 3: 3:00
 ];
 
+// --- 3-max: Hero at 6, every 120° ---
 const LAYOUT_3: SeatPos[] = [
-    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // bottom
-    { style: { top: '10%', left: '2%' } },                                             // top-left
-    { style: { top: '10%', right: '2%' } },                                            // top-right
+    { style: { bottom: '0%', left: '50%', transform: [{ translateX: -35 }] } },       // 0: 6:00
+    { style: { top: '6%', left: '2%' } },                                              // 1: 10:00
+    { style: { top: '6%', right: '2%' } },                                             // 2: 2:00
 ];
 
 const LAYOUTS: Record<number, SeatPos[]> = {
@@ -117,50 +125,28 @@ const LAYOUTS: Record<number, SeatPos[]> = {
     9: LAYOUT_9,
 };
 
-// Dealer button offset — exact values from index.html updateDealerButton() lines 2486-2495.
-// index.html uses 24px dealer; RN uses 32px. Offsets adjusted by ~4px where needed.
-// Backup of previous values saved in PokerTable.backup.tsx.
+// Dealer button offset — positioned relative to the seat anchor.
+// Uses seat index directly for robustness (independent of seat CSS positions).
 function getDealerOffset(tableSize: number, seatIndex: number): Record<string, any> {
     const layout = LAYOUTS[tableSize] || LAYOUT_9;
     const pos = layout[seatIndex]?.style || {};
 
-    // visualPos 1: bottom center — top:-40px; left:50%; transform:translateX(-50%)
-    if (pos.bottom !== undefined && pos.bottom === '0%') {
+    // Bottom center (hero): dealer floats above
+    if (seatIndex === 0) {
         return { top: -40, left: '50%', transform: [{ translateX: -16 }] };
     }
-    // visualPos 2: bottom-left — top:0; left:100%; margin-left:30px
-    if (pos.bottom !== undefined && pos.left !== undefined && !pos.right) {
+    // Left side seats: dealer goes to the right
+    if (pos.left !== undefined && !pos.right) {
         return { top: 0, left: '100%', marginLeft: 26 };
     }
-    // visualPos 9: bottom-right — bottom:20; right:100%; margin-right:30px
-    if (pos.bottom !== undefined && pos.right !== undefined && !pos.left) {
+    // Right side seats: dealer goes to the left
+    if (pos.right !== undefined && !pos.left) {
         return { bottom: 20, right: '100%', marginRight: 26 };
     }
-    // visualPos 3: left mid — top:50%; left:100%; margin-left:20px; transform:translateY(-50%)
-    if (pos.left !== undefined && !pos.right && pos.top !== undefined && typeof pos.top === 'string' && pos.top.includes('48')) {
-        return { top: '50%', left: '100%', marginLeft: 16, transform: [{ translateY: -16 }] };
+    // Top center: dealer below
+    if (pos.left === '50%' || pos.right === '50%') {
+        return { bottom: -40, left: '50%', transform: [{ translateX: -16 }] };
     }
-    // visualPos 4: upper-left — top:50px; right:-40px
-    if (pos.top !== undefined && pos.left !== undefined && !pos.right && pos.top === '18%') {
-        return { top: 50, right: -44 };
-    }
-    // visualPos 7: upper-right — top:50px; left:-40px
-    if (pos.top !== undefined && pos.right !== undefined && !pos.left && pos.top === '18%') {
-        return { top: 50, left: -44 };
-    }
-    // visualPos 8: right mid — top:50%; right:100%; margin-right:20px; transform:translateY(-50%)
-    if (pos.right !== undefined && !pos.left && pos.top !== undefined && typeof pos.top === 'string' && pos.top.includes('48')) {
-        return { top: '50%', right: '100%', marginRight: 16, transform: [{ translateY: -16 }] };
-    }
-    // visualPos 5: top-left — top:85px; right:-30px
-    if (pos.top !== undefined && pos.top === '-2%' && pos.left !== undefined) {
-        return { top: 85, right: -34 };
-    }
-    // visualPos 6: top-right — top:85px; left:-30px
-    if (pos.top !== undefined && pos.top === '-2%' && pos.right !== undefined) {
-        return { top: 85, left: -34 };
-    }
-    // Fallback — same as visualPos 1
     return { top: -40, left: '50%', transform: [{ translateX: -16 }] };
 }
 
@@ -169,42 +155,35 @@ function getBetChipOffset(tableSize: number, seatIndex: number): Record<string, 
     const layout = LAYOUTS[tableSize] || LAYOUT_9;
     const pos = layout[seatIndex]?.style || {};
 
-    // Bottom center: bet goes above seat
-    if (pos.bottom !== undefined && pos.bottom === '0%') {
+    // Bottom center (hero): bet goes above seat
+    if (seatIndex === 0) {
         return { top: -36, left: 14 };
     }
-    // Bottom-left (seat 2): bet goes up-right
-    if (pos.bottom !== undefined && pos.left !== undefined && !pos.right) {
-        return { top: -10, right: -55 };
-    }
-    // Bottom-right (seat 9): bet goes up-left
-    if (pos.bottom !== undefined && pos.right !== undefined && !pos.left) {
-        return { top: -10, left: -55 };
-    }
-    // Left mid (seat 3): bet goes right, ABOVE board cards
-    if (pos.left !== undefined && !pos.right && pos.top !== undefined && typeof pos.top === 'string' && pos.top.includes('48')) {
-        return { top: -22, right: -60 };
-    }
-    // Upper-left (seat 4): bet goes down-right
-    if (pos.top !== undefined && pos.left !== undefined && !pos.right && pos.top === '18%') {
-        return { top: 45, right: -50 };
-    }
-    // Upper-right (seat 7): bet goes down-left
-    if (pos.top !== undefined && pos.right !== undefined && !pos.left && pos.top === '18%') {
-        return { top: 45, left: -50 };
-    }
-    // Right mid (seat 8): bet goes left, ABOVE board cards
-    if (pos.right !== undefined && !pos.left && pos.top !== undefined && typeof pos.top === 'string' && pos.top.includes('48')) {
-        return { top: -22, left: -60 };
-    }
-    // Top-left (seat 5): bet goes far down-right
-    if (pos.top !== undefined && pos.top === '-2%' && pos.left !== undefined) {
-        return { top: 80, right: -30 };
-    }
-    // Top-right (seat 6): bet goes far down-left
-    if (pos.top !== undefined && pos.top === '-2%' && pos.right !== undefined) {
-        return { top: 80, left: -30 };
-    }
+
+    // Determine which side the seat is on
+    const isLeft = pos.left !== undefined && !pos.right;
+    const isRight = pos.right !== undefined && !pos.left;
+    const isTop = pos.top !== undefined && pos.bottom === undefined;
+    const isBottom = pos.bottom !== undefined && pos.bottom !== '0%';
+
+    // Bottom-left: bet goes up-right
+    if (isBottom && isLeft) return { top: -10, right: -55 };
+    // Bottom-right: bet goes up-left
+    if (isBottom && isRight) return { top: -10, left: -55 };
+
+    // Mid-left: bet goes right
+    if (isLeft && isTop && parseFloat(pos.top) > 20) return { top: -22, right: -55 };
+    // Mid-right: bet goes left
+    if (isRight && isTop && parseFloat(pos.top) > 20) return { top: -22, left: -55 };
+
+    // Upper-left: bet goes down-right
+    if (isLeft && isTop && parseFloat(pos.top) <= 20) return { top: 50, right: -40 };
+    // Upper-right: bet goes down-left
+    if (isRight && isTop && parseFloat(pos.top) <= 20) return { top: 50, left: -40 };
+
+    // Top center: bet goes below
+    if (pos.left === '50%' && isTop) return { bottom: -30, left: 14 };
+
     // Fallback
     return { top: -36, left: 14 };
 }

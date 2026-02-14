@@ -1,16 +1,13 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { ScreenWrapper } from '../../components/ui/ScreenWrapper';
 import { PokerTable, SeatData } from '../../components/replayer/PokerTable';
 import { SeatModal } from '../../components/replayer/SeatModal';
 import { ActionButtons, ActionType } from '../../components/replayer/ActionButtons';
-import { ActionRecord } from '../../components/replayer/ActionHistory';
-import { ActionHistoryModal } from '../../components/replayer/ActionHistoryModal';
-import { NotesModal } from '../../components/replayer/NotesModal';
+import { ActionHistory, ActionRecord } from '../../components/replayer/ActionHistory';
 import { PlaybackControls } from '../../components/replayer/PlaybackControls';
 import { BetSizingModal } from '../../components/replayer/BetSizingModal';
 import { COLORS } from '../../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '../../components/ui/ToastProvider';
 
 // Position labels per table size (clockwise from BTN)
@@ -72,15 +69,13 @@ export default function HandHistoriesScreen() {
     // Used cards tracking (card string -> owner label)
     const [usedCards, setUsedCards] = useState<Record<string, string>>({});
 
-    // Action history & notes
+    // Tabs
+    const [activeTab, setActiveTab] = useState<'history' | 'notes'>('history');
+    const [showCards, setShowCards] = useState(false);
+
+    // Action history
     const [actions, setActions] = useState<ActionRecord[]>([]);
     const [notes, setNotes] = useState('');
-
-    // Display toggles & modals
-    const [showCards, setShowCards] = useState(true);
-    const [displayMode, setDisplayMode] = useState<'money' | 'bb'>('money');
-    const [historyModalVisible, setHistoryModalVisible] = useState(false);
-    const [notesModalVisible, setNotesModalVisible] = useState(false);
 
     // Active seat for actions — starts at UTG (first after BB)
     const [activeSeatIndex, setActiveSeatIndex] = useState(getInitialActiveIndex(9));
@@ -439,60 +434,30 @@ export default function HandHistoriesScreen() {
                         tableSize={tableSize}
                         onPressSeat={handlePressSeat}
                         onPressBoardSlot={handlePressBoardSlot}
-                        showCards={showCards}
-                        displayMode={displayMode}
-                        bb={bb}
                     />
                 </View>
 
                 {/* Bottom Controls */}
                 <View style={styles.bottomControls}>
-                    {/* Compact Toolbar Row */}
-                    <View style={styles.toolbar}>
-                        {/* History button */}
+                    {/* Tabs + Stepper Row */}
+                    <View style={styles.tabs}>
                         <TouchableOpacity
-                            style={styles.toolbarBtn}
-                            onPress={() => setHistoryModalVisible(true)}
-                            activeOpacity={0.6}
+                            style={[styles.tab, activeTab === 'history' && styles.tabActive]}
+                            onPress={() => setActiveTab('history')}
                         >
-                            <Ionicons name="list-outline" size={14} color="#9aa3a8" />
-                            <Text style={styles.toolbarBtnText}>History</Text>
-                            {actions.length > 0 && (
-                                <View style={styles.badge}>
-                                    <Text style={styles.badgeText}>{actions.length}</Text>
-                                </View>
-                            )}
+                            <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>History</Text>
                         </TouchableOpacity>
-
-                        {/* Notes button */}
                         <TouchableOpacity
-                            style={styles.toolbarBtn}
-                            onPress={() => setNotesModalVisible(true)}
-                            activeOpacity={0.6}
+                            style={[styles.tab, activeTab === 'notes' && styles.tabActive]}
+                            onPress={() => setActiveTab('notes')}
                         >
-                            <Ionicons name="document-text-outline" size={14} color="#9aa3a8" />
-                            <Text style={styles.toolbarBtnText}>Notes</Text>
+                            <Text style={[styles.tabText, activeTab === 'notes' && styles.tabTextActive]}>Notes</Text>
                         </TouchableOpacity>
-
-                        {/* Show Cards toggle */}
                         <TouchableOpacity
-                            style={[styles.toolbarBtn, showCards && styles.toolbarBtnActive]}
+                            style={styles.tab}
                             onPress={() => setShowCards(!showCards)}
-                            activeOpacity={0.6}
                         >
-                            <Ionicons name={showCards ? 'eye' : 'eye-off'} size={14} color={showCards ? COLORS.accent : '#9aa3a8'} />
-                            <Text style={[styles.toolbarBtnText, showCards && styles.toolbarBtnTextActive]}>Show Cards</Text>
-                        </TouchableOpacity>
-
-                        {/* BB/$ toggle */}
-                        <TouchableOpacity
-                            style={[styles.toolbarBtn, displayMode === 'bb' && styles.toolbarBtnActive]}
-                            onPress={() => setDisplayMode(prev => prev === 'money' ? 'bb' : 'money')}
-                            activeOpacity={0.6}
-                        >
-                            <Text style={[styles.toolbarToggleLabel, displayMode === 'bb' && styles.toolbarBtnTextActive]}>
-                                {displayMode === 'bb' ? 'BB' : '$'}
-                            </Text>
+                            <Text style={styles.showCardsText}>Show</Text>
                         </TouchableOpacity>
 
                         {/* Table Size Stepper (right side) */}
@@ -516,6 +481,22 @@ export default function HandHistoriesScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
+
+                    {/* Action History or Notes */}
+                    {activeTab === 'history' ? (
+                        <ActionHistory actions={actions} />
+                    ) : (
+                        <View style={styles.notesPanel}>
+                            <TextInput
+                                style={styles.notesInput}
+                                placeholder="Add notes about this hand..."
+                                placeholderTextColor="#666"
+                                value={notes}
+                                onChangeText={setNotes}
+                                multiline
+                            />
+                        </View>
+                    )}
 
                     {/* Action Buttons */}
                     <ActionButtons
@@ -549,21 +530,6 @@ export default function HandHistoriesScreen() {
                 onSitHere={handleSitHere}
             />
 
-            {/* Action History Modal */}
-            <ActionHistoryModal
-                visible={historyModalVisible}
-                actions={actions}
-                onClose={() => setHistoryModalVisible(false)}
-            />
-
-            {/* Notes Modal */}
-            <NotesModal
-                visible={notesModalVisible}
-                notes={notes}
-                onChangeNotes={setNotes}
-                onClose={() => setNotesModalVisible(false)}
-            />
-
             {/* Bet Sizing Modal */}
             <BetSizingModal
                 visible={betSizingVisible}
@@ -595,57 +561,37 @@ const styles = StyleSheet.create({
         // pinned at bottom, no flex growth
     },
 
-    // Compact Toolbar
-    toolbar: {
+    // Tabs + Stepper row
+    tabs: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
+        paddingHorizontal: 12,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255,255,255,0.05)',
     },
-    toolbarBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 3,
-        paddingVertical: 5,
-        paddingHorizontal: 8,
-        borderRadius: 6,
-        backgroundColor: 'rgba(255,255,255,0.04)',
+    tab: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderBottomWidth: 2,
+        borderBottomColor: 'transparent',
     },
-    toolbarBtnActive: {
-        backgroundColor: 'rgba(16,185,129,0.12)',
+    tabActive: {
+        borderBottomColor: COLORS.accent,
     },
-    toolbarBtnText: {
-        color: '#9aa3a8',
+    tabText: {
+        color: COLORS.muted,
+        fontSize: 13,
+    },
+    tabTextActive: {
+        color: '#fff',
+    },
+    showCardsText: {
+        color: COLORS.muted,
         fontSize: 11,
     },
-    toolbarBtnTextActive: {
-        color: COLORS.accent,
-    },
-    toolbarToggleLabel: {
-        color: '#9aa3a8',
-        fontSize: 12,
-        fontWeight: '800',
-    },
-    badge: {
-        backgroundColor: COLORS.accent,
-        borderRadius: 8,
-        minWidth: 16,
-        height: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 4,
-        marginLeft: 2,
-    },
-    badgeText: {
-        color: '#000',
-        fontSize: 9,
-        fontWeight: '800',
-    },
 
-    // Stepper (inside toolbar, pushed right)
+    // Stepper (inside tabs row, pushed right)
     stepperRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -679,5 +625,24 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '700',
         color: '#fff',
+    },
+
+    // Notes
+    notesPanel: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    notesInput: {
+        width: '100%',
+        height: 60,
+        backgroundColor: COLORS.bg,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        color: '#fff',
+        fontSize: 13,
+        textAlignVertical: 'top',
     },
 });

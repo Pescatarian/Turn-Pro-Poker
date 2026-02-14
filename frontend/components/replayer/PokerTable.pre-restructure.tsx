@@ -28,9 +28,6 @@ interface PokerTableProps {
     tableSize: number;
     onPressSeat: (seatIndex: number) => void;
     onPressBoardSlot: (slotIndex: number) => void;
-    showCards?: boolean;
-    displayMode?: 'money' | 'bb';
-    bb?: number;
 }
 
 function parseCard(c: string): { rank: string; suit: 'h' | 'd' | 'c' | 's' } | null {
@@ -210,16 +207,6 @@ function getBetChipOffset(tableSize: number, seatIndex: number): Record<string, 
 }
 
 
-// Format an amount based on display mode
-function formatAmount(amount: number, displayMode: 'money' | 'bb', bb: number): string {
-    if (displayMode === 'bb') {
-        const bbs = amount / bb;
-        // Show decimals only if not a whole number
-        return bbs % 1 === 0 ? `${bbs}bb` : `${bbs.toFixed(1)}bb`;
-    }
-    return amount.toLocaleString();
-}
-
 export const PokerTable: React.FC<PokerTableProps> = ({
     seats,
     communityCards,
@@ -228,9 +215,6 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     tableSize,
     onPressSeat,
     onPressBoardSlot,
-    showCards = true,
-    displayMode = 'money',
-    bb = 10,
 }) => {
     const layout = LAYOUTS[tableSize] || LAYOUT_9;
 
@@ -268,7 +252,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                     </View>
 
                     {/* Pot — below cards */}
-                    <Text style={styles.potText}>Pot: {formatAmount(pot, displayMode, bb)}</Text>
+                    <Text style={styles.potText}>Pot: {pot}</Text>
                 </LinearGradient>
             </View>
 
@@ -293,17 +277,10 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                             {!seat.isFolded && (
                                 <View style={styles.seatCards}>
                                     {hasCards ? (
-                                        showCards || seat.isHero ? (
-                                            <>
-                                                <Card rank={card1?.rank} suit={card1?.suit} size="small" revealed />
-                                                <Card rank={card2?.rank} suit={card2?.suit} size="small" revealed />
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Card hidden size="small" />
-                                                <Card hidden size="small" />
-                                            </>
-                                        )
+                                        <>
+                                            <Card rank={card1?.rank} suit={card1?.suit} size="small" revealed />
+                                            <Card rank={card2?.rank} suit={card2?.suit} size="small" revealed />
+                                        </>
                                     ) : (
                                         <>
                                             <Card hidden size="small" />
@@ -323,7 +300,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                                     {seat.position}
                                 </Text>
                                 <Text style={styles.stackText}>
-                                    {formatAmount(seat.stack, displayMode, bb)}
+                                    {seat.stack.toLocaleString()}
                                 </Text>
                             </View>
 
@@ -336,13 +313,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
                             {/* Bet chips (SB/BB blind postings) */}
                             {seat.currentBet > 0 && (
-                                <View style={[styles.betChipContainer, getBetChipOffset(tableSize, i)]}>
-                                    <View style={styles.betChipCircle}>
-                                        <View style={styles.betChipInnerRing} />
-                                    </View>
-                                    <Text style={styles.betChipAmount}>
-                                        {formatAmount(seat.currentBet, displayMode, bb)}
-                                    </Text>
+                                <View style={[styles.betChip, getBetChipOffset(tableSize, i)]}>
+                                    <Text style={styles.betChipText}>{seat.currentBet}</Text>
                                 </View>
                             )}
                         </TouchableOpacity>
@@ -479,41 +451,22 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#fff',
     },
-    betChipContainer: {
+    betChip: {
         position: 'absolute',
-        alignItems: 'center',
-        zIndex: 9,
-    },
-    betChipCircle: {
-        width: 20,
+        minWidth: 22,
         height: 20,
         borderRadius: 10,
-        backgroundColor: '#c0392b',
+        backgroundColor: 'rgba(239, 68, 68, 0.9)',
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 2,
-        borderColor: '#e74c3c',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.4,
-        shadowRadius: 2,
-        elevation: 3,
-    },
-    betChipInnerRing: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
+        paddingHorizontal: 6,
+        zIndex: 9,
         borderWidth: 1.5,
-        borderColor: 'rgba(255,255,255,0.5)',
-        borderStyle: 'dashed',
+        borderColor: 'rgba(255,255,255,0.4)',
     },
-    betChipAmount: {
+    betChipText: {
         fontSize: 9,
         fontWeight: '800',
         color: '#fff',
-        marginTop: 1,
-        textShadowColor: 'rgba(0,0,0,0.8)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
     },
 });

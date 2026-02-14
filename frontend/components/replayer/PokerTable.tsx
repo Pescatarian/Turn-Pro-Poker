@@ -38,40 +38,133 @@ function parseCard(c: string): { rank: string; suit: 'h' | 'd' | 'c' | 's' } | n
     return { rank: c.slice(0, -1), suit: c.slice(-1) as any };
 }
 
-// --- Computed Seat Positions ---
-// Seats are placed on an elliptical path using trigonometry.
-// Hero (seat 0) is always at 6 o'clock (bottom center).
-// Remaining seats are evenly distributed clockwise.
+// --- Stadium-shape seat layout ---
+// The table is a stadium (rectangle with semicircle caps on top and bottom).
+// We distribute seats at equal arc-length intervals along this perimeter.
+// Seat 0 (hero) is always at bottom center (6 o'clock).
+// Seats go clockwise: seat 1 = left of hero, seat N-1 = right of hero.
 
 type SeatPos = { style: Record<string, any> };
 
-// Compute seat angle for a given seat index and table size.
-// Returns angle in radians. 6 o'clock = π/2 in screen coords (y-down).
-// Clockwise = increasing angle: 6→9→12→3.
-function seatAngle(tableSize: number, seatIndex: number): number {
-    return (Math.PI / 2) + (seatIndex * 2 * Math.PI / tableSize);
+// Stadium geometry (in % of container)
+// The seat path is slightly outside the felt for visual clearance.
+const STADIUM = {
+    cx: 50,    // center X %
+    cy: 50,    // center Y %
+    halfW: 22, // half-width of the straight section (X extent of the rectangle part)
+    halfH: 34, // half-height (Y extent from center to top/bottom of straight section)
+    r: 22,     // radius of the semicircle caps (same as halfW for smooth stadium)
+};
+
+// Total perimeter of the stadium:
+// Two straight sides (each 2 * halfH) + two semicircles (each π * r)
+const STRAIGHT_LEN = 2 * STADIUM.halfH;
+const CAP_LEN = Math.PI * STADIUM.r;
+const TOTAL_PERIMETER = 2 * STRAIGHT_LEN + 2 * CAP_LEN;
+
+// Given a distance `d` along the perimeter (starting from bottom center, going clockwise),
+// return the (x, y) position in % coordinates.
+// The perimeter path is: bottom-center → left straight → top-left cap → right straight → bottom-right cap
+function stadiumPoint(d: number): { x: number; y: number } {
+    const { cx, cy, halfW, halfH, r } = STADIUM;
+
+    // Normalize d to [0, TOTAL_PERIMETER)
+    let dist = ((d % TOTAL_PERIMETER) + TOTAL_PERIMETER) % TOTAL_PERIMETER;
+
+    // Segment 1: Bottom-center to top along LEFT side (going up = clockwise on screen)
+    // Start: (cx - halfW, cy + halfH) → End: (cx - halfW, cy - halfH)
+    // But we start at bottom CENTER of the bottom cap, so first half of bottom cap, then left side...
+
+    // Actually, let's redefine the path more carefully:
+    // We have 4 segments:
+    //   1. Bottom semi-cap (left half): from bottom-center going left and up to left-straight start
+    //   2. Left straight: going up from (cx-halfW, cy+halfH) to (cx-halfW, cy-halfH)
+    //   3. Top semi-cap: from top-left going right across the top to top-right
+    //   4. Right straight: going down from (cx+halfW, cy-halfH) to (cx+halfW, cy+halfH)
+    //   5. Bottom semi-cap (right half): from right-straight end going right and down to bottom-center
+
+    // Simpler: treat it as starting at bottom center, going clockwise.
+    // Path segments (clockwise from bottom center):
+    const halfCap = CAP_LEN / 2; // half of one semicircle
+
+    // Seg A: Bottom-right half of bottom cap (bottom center → left side bottom)
+    //   Actually clockwise from 6 o'clock means going LEFT first.
+    //   bottom center = (cx, cy + halfH + r)
+    //   Going clockwise (counterclockwise in math) means left side first.
+
+    // Let me use a cleaner model:
+    // The stadium path, starting from bottom-center, going clockwise:
+    //   1. Left half of bottom cap: arc from bottom-center to left-side bottom. Length = halfCap
+    //   2. Left straight side: from left-bottom to left-top. Length = STRAIGHT_LEN  
+    //   3. Top cap: arc from left-top to right-top. Length = CAP_LEN
+    //   4. Right straight side: from right-top to right-bottom. Length = STRAIGHT_LEN
+    //   5. Right half of bottom cap: arc from right-bottom to bottom-center. Length = halfCap
+
+    const seg1 = halfCap;                           // left half of bottom cap
+    const seg2 = seg1 + STRAIGHT_LEN;               // left straight
+    const seg3 = seg2 + CAP_LEN;                    // top cap
+    const seg4 = seg3 + STRAIGHT_LEN;               // right straight
+    // seg5 ends at TOTAL_PERIMETER                  // right half of bottom cap
+
+    if (dist < seg1) {
+        // Left half of bottom cap: arc from bottom-center going left
+        // Center of bottom cap: (cx, cy + halfH)
+        // Arc goes from angle π/2 (pointing down) to angle π (pointing left)
+        const t = dist / halfCap; // 0..1
+        const angle = (Math.PI / 2) + t * (Math.PI / 2); // π/2 to π
+        return {
+            x: cx + r * Math.cos(angle),
+            y: (cy + halfH) + r * Math.sin(angle),
+        };
+    } else if (dist < seg2) {
+        // Left straight: going up from (cx - halfW, cy + halfH) to (cx - halfW, cy - halfH)
+        const t = (dist - seg1) / STRAIGHT_LEN;
+        return {
+            x: cx - halfW,
+            y: (cy + halfH) - t * (2 * halfH),
+        };
+    } else if (dist < seg3) {
+        // Top cap: arc from left-top to right-top
+        // Center of top cap: (cx, cy - halfH)
+        // Arc goes from angle π (pointing left) to angle 0/2π (pointing right), going through 3π/2 (up)
+        const t = (dist - seg2) / CAP_LEN;
+        const angle = Math.PI + t * Math.PI; // π to 2π
+        return {
+            x: cx + r * Math.cos(angle),
+            y: (cy - halfH) + r * Math.sin(angle),
+        };
+    } else if (dist < seg4) {
+        // Right straight: going down from (cx + halfW, cy - halfH) to (cx + halfW, cy + halfH)
+        const t = (dist - seg3) / STRAIGHT_LEN;
+        return {
+            x: cx + halfW,
+            y: (cy - halfH) + t * (2 * halfH),
+        };
+    } else {
+        // Right half of bottom cap: arc from right-bottom back to bottom-center
+        // Center of bottom cap: (cx, cy + halfH)
+        // Arc goes from angle 0 (pointing right) to angle π/2 (pointing down)
+        const t = (dist - seg4) / halfCap;
+        const angle = t * (Math.PI / 2); // 0 to π/2
+        return {
+            x: cx + r * Math.cos(angle),
+            y: (cy + halfH) + r * Math.sin(angle),
+        };
+    }
 }
 
-// Compute seat positions on an elliptical path.
-// cx, cy = center of ellipse as % of container.
-// rx, ry = semi-axes as % of container.
-// Seats are centered on the computed point via transform.
 function computeSeatLayout(tableSize: number): SeatPos[] {
-    const cx = 50;   // center X %
-    const cy = 50;   // center Y %
-    const rx = 40;   // horizontal semi-axis %
-    const ry = 40;   // vertical semi-axis %
-
+    const spacing = TOTAL_PERIMETER / tableSize;
     const seats: SeatPos[] = [];
+
     for (let i = 0; i < tableSize; i++) {
-        const angle = seatAngle(tableSize, i);
-        const xPct = cx + rx * Math.cos(angle);
-        const yPct = cy + ry * Math.sin(angle);
+        const d = i * spacing;
+        const { x, y } = stadiumPoint(d);
 
         seats.push({
             style: {
-                left: `${xPct.toFixed(1)}%`,
-                top: `${yPct.toFixed(1)}%`,
+                left: `${x.toFixed(1)}%`,
+                top: `${y.toFixed(1)}%`,
                 transform: [{ translateX: -30 }, { translateY: -35 }],
             },
         });
@@ -84,24 +177,33 @@ for (let n = 3; n <= 9; n++) {
     LAYOUTS[n] = computeSeatLayout(n);
 }
 
-// Dealer button offset — uses angle to point toward table center.
+// Dealer button offset — points toward table center from the seat position.
 function getDealerOffset(tableSize: number, seatIndex: number): Record<string, any> {
-    const angle = seatAngle(tableSize, seatIndex);
+    const spacing = TOTAL_PERIMETER / tableSize;
+    const { x, y } = stadiumPoint(seatIndex * spacing);
+    // Direction from seat toward center
+    const dx = STADIUM.cx - x;
+    const dy = STADIUM.cy - y;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
     const dist = 38;
-    // Offset toward center (opposite direction of seat's position on ellipse)
-    const dx = Math.round(-dist * Math.cos(angle));
-    const dy = Math.round(-dist * Math.sin(angle));
-    // Position relative to seat layout box (center is approx 30, 35)
-    return { left: 14 + dx, top: 20 + dy };
+    return {
+        left: 14 + Math.round((dx / len) * dist),
+        top: 20 + Math.round((dy / len) * dist),
+    };
 }
 
-// Bet chip offset — placed between seat and table center, further out than dealer.
+// Bet chip offset — placed between seat and table center.
 function getBetChipOffset(tableSize: number, seatIndex: number): Record<string, any> {
-    const angle = seatAngle(tableSize, seatIndex);
+    const spacing = TOTAL_PERIMETER / tableSize;
+    const { x, y } = stadiumPoint(seatIndex * spacing);
+    const dx = STADIUM.cx - x;
+    const dy = STADIUM.cy - y;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
     const dist = 50;
-    const dx = Math.round(-dist * Math.cos(angle));
-    const dy = Math.round(-dist * Math.sin(angle));
-    return { left: 20 + dx, top: 25 + dy };
+    return {
+        left: 20 + Math.round((dx / len) * dist),
+        top: 25 + Math.round((dy / len) * dist),
+    };
 }
 
 

@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, AppState, AppStateStatus, Share } from 'react-native';
+import { File as ExpoFile, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { ScreenWrapper } from '../../components/ui/ScreenWrapper';
 import { PokerTable, SeatData } from '../../components/replayer/PokerTable';
 import { SeatModal } from '../../components/replayer/SeatModal';
@@ -192,6 +194,7 @@ export default function HandHistoriesScreen() {
     // Bet sizing modal state
     const [betSizingVisible, setBetSizingVisible] = useState(false);
     const [pendingBetAction, setPendingBetAction] = useState<'bet' | 'raise'>('bet');
+    const pendingSeatIndexRef = useRef(0); // Captures activeSeatIndex when raise modal opens
 
     // Playback animation state
     const [isPlaying, setIsPlaying] = useState(false);
@@ -276,6 +279,32 @@ export default function HandHistoriesScreen() {
         setSeatModalVisible(true);
     }, []);
 
+    // Remove a board card (tap filled card in modal header to replace it)
+    const handleBoardCardRemove = useCallback((slotIndex: number) => {
+        const cardToRemove = communityCards[slotIndex];
+        if (cardToRemove) {
+            // Clear the card from community cards
+            setCommunityCards(prev => {
+                const next = [...prev];
+                next[slotIndex] = '';
+                return next;
+            });
+            // Free it from usedCards
+            setUsedCards(prev => {
+                const next = { ...prev };
+                delete next[cardToRemove];
+                return next;
+            });
+        }
+        // Switch active slot to the cleared slot
+        setCurrentBoardSlot(slotIndex);
+    }, [communityCards]);
+
+    // Switch active board slot (tap empty slot in modal header)
+    const handleBoardSlotSelect = useCallback((slotIndex: number) => {
+        setCurrentBoardSlot(slotIndex);
+    }, []);
+
     const handleSeatModalClose = useCallback((newStack?: number) => {
         if (selectedSeatIndex !== null && newStack !== undefined) {
             setSeats(prev => {
@@ -339,40 +368,57 @@ export default function HandHistoriesScreen() {
         const clickedLabel = seats[selectedSeatIndex].position;
         const clickedLabelIndex = positions.indexOf(clickedLabel);
 
-        setSeats(prev => {
-            return prev.map((seat, seatIndex) => {
-                // Rotate labels so the clicked label lands on seat index 0 (6 o'clock)
-                const labelIndex = ((clickedLabelIndex + seatIndex) % tableSize + tableSize) % tableSize;
-                const newPosition = positions[labelIndex];
-                const newBet = newPosition === 'SB' ? sb : newPosition === 'BB' ? bb : 0;
-                return {
-                    ...seat,
-                    position: newPosition,
-                    isHero: seatIndex === 0,
-                    isDealer: newPosition === 'BTN',
-                    currentBet: newBet,
-                    stack: seat.cards.length > 0 ? seat.stack : 1000 - newBet,
-                    isAllIn: false,
-                };
+        if (actions.length === 0) {
+            // === FRESH HAND (setup mode) ===
+            // Full reset: rotate positions, set blinds, reset stacks
+            setSeats(prev => {
+                return prev.map((seat, seatIndex) => {
+                    const labelIndex = ((clickedLabelIndex + seatIndex) % tableSize + tableSize) % tableSize;
+                    const newPosition = positions[labelIndex];
+                    const newBet = newPosition === 'SB' ? sb : newPosition === 'BB' ? bb : 0;
+                    return {
+                        ...seat,
+                        position: newPosition,
+                        isHero: seatIndex === 0,
+                        isDealer: newPosition === 'BTN',
+                        currentBet: newBet,
+                        stack: seat.cards.length > 0 ? seat.stack : 1000 - newBet,
+                        isAllIn: false,
+                    };
+                });
             });
-        });
+            // Reset active seat to UTG
+            const utgLabelIndex = 3;
+            const utgSeatIndex = ((utgLabelIndex - clickedLabelIndex) % tableSize + tableSize) % tableSize;
+            setActiveSeatIndex(utgSeatIndex);
+            setLastAggressorIndex(utgSeatIndex);
+        } else {
+            // === MID-HAND (non-destructive) ===
+            // Only rotate position labels and set Hero/Dealer flags.
+            // Preserve currentBet, stack, isAllIn, isFolded — game state stays intact.
+            setSeats(prev => {
+                return prev.map((seat, seatIndex) => {
+                    const labelIndex = ((clickedLabelIndex + seatIndex) % tableSize + tableSize) % tableSize;
+                    const newPosition = positions[labelIndex];
+                    return {
+                        ...seat,
+                        position: newPosition,
+                        isHero: seatIndex === 0,
+                        isDealer: newPosition === 'BTN',
+                    };
+                });
+            });
+        }
 
-        // Reset active seat to UTG in the rotated layout
-        // UTG label is at POSITION_MAP index 3; find which seat index it lands on
-        const utgLabelIndex = 3; // UTG is always the 4th position in POSITION_MAP
-        // After rotation, seat with label at positions[utgLabelIndex] lands on seat index:
-        const utgSeatIndex = ((utgLabelIndex - clickedLabelIndex) % tableSize + tableSize) % tableSize;
-        setActiveSeatIndex(utgSeatIndex);
-        // Set UTG as last aggressor so preflop action goes around to BB before closing
-        setLastAggressorIndex(utgSeatIndex);
-
-
-    }, [selectedSeatIndex, seats, tableSize, showToast, sb, bb]);
+    }, [selectedSeatIndex, seats, tableSize, showToast, sb, bb, actions]);
 
     // Helper: advance to next non-folded, non-all-in seat
     // Also detects street end and handles pot collection + street transition
-    const advanceSeat = useCallback((updatedSeats?: SeatData[]) => {
+    // Accepts explicit params to avoid stale React closure values
+    const advanceSeat = useCallback((updatedSeats?: SeatData[], fromSeatIndex?: number, aggressorIndex?: number) => {
         const seatsNow = updatedSeats || seats;
+        const currentActive = fromSeatIndex ?? activeSeatIndex;
+        const currentAggressor = aggressorIndex ?? lastAggressorIndex;
 
         const activePlayers = seatsNow.filter(s => !s.isFolded && !s.isAllIn);
         const nonFoldedPlayers = seatsNow.filter(s => !s.isFolded);
@@ -383,8 +429,8 @@ export default function HandHistoriesScreen() {
             return;
         }
 
-        // Find next seat that can act
-        let nextIndex = (activeSeatIndex + 1) % tableSize;
+        // Find next seat that can act (starting from the seat AFTER currentActive)
+        let nextIndex = (currentActive + 1) % tableSize;
         let attempts = 0;
         while ((seatsNow[nextIndex].isFolded || seatsNow[nextIndex].isAllIn) && attempts < tableSize) {
             nextIndex = (nextIndex + 1) % tableSize;
@@ -399,7 +445,7 @@ export default function HandHistoriesScreen() {
 
         // Street closing: if next to act is the last aggressor AND all bets are matched
         // This means everyone has had a chance to act since the last raise
-        if (lastAggressorIndex !== null && nextIndex === lastAggressorIndex) {
+        if (currentAggressor !== null && nextIndex === currentAggressor) {
             const highBet = Math.max(...nonFoldedPlayers.map(s => s.currentBet));
             const allMatched = activePlayers.every(s => s.currentBet === highBet);
             if (allMatched) {
@@ -414,22 +460,28 @@ export default function HandHistoriesScreen() {
     // Collect bets from current street and advance to next
     const collectAndAdvance = useCallback((seatsNow: SeatData[]) => {
         const totalCollected = seatsNow.reduce((sum, s) => sum + s.currentBet, 0);
-        const { pots: sidePots, excessReturn } = calculateSidePots(seatsNow);
         const newSeats = seatsNow.map(s => ({ ...s, currentBet: 0 }));
-        // In HU all-in, return excess chips to the bigger stack
         let adjustedTotal = totalCollected;
-        if (excessReturn) {
-            newSeats[excessReturn.seatIndex] = {
-                ...newSeats[excessReturn.seatIndex],
-                stack: newSeats[excessReturn.seatIndex].stack + excessReturn.amount,
-            };
-            adjustedTotal -= excessReturn.amount;
+
+        // Only calculate side pots when someone is actually all-in
+        const hasAllIn = seatsNow.some(s => !s.isFolded && s.isAllIn);
+        if (hasAllIn) {
+            const { pots: sidePots, excessReturn } = calculateSidePots(seatsNow);
+            // In HU all-in, return excess chips to the bigger stack
+            if (excessReturn) {
+                newSeats[excessReturn.seatIndex] = {
+                    ...newSeats[excessReturn.seatIndex],
+                    stack: newSeats[excessReturn.seatIndex].stack + excessReturn.amount,
+                };
+                adjustedTotal -= excessReturn.amount;
+            }
+            if (sidePots.length > 0) {
+                setPots(prev => [...prev, ...sidePots]);
+            }
         }
+
         setSeats(newSeats);
         setPot(prev => prev + adjustedTotal);
-        if (sidePots.length > 0) {
-            setPots(prev => [...prev, ...sidePots]);
-        }
         setCurrentStreet(prev => NEXT_STREET[prev]);
         // Set first actor as default aggressor so check-arounds close the street
         const firstActor = getPostflopFirstActor(newSeats, tableSize);
@@ -479,6 +531,7 @@ export default function HandHistoriesScreen() {
 
         if (actionType === 'bet' || actionType === 'raise') {
             setPendingBetAction(actionType === 'bet' ? 'bet' : 'raise');
+            pendingSeatIndexRef.current = activeSeatIndex; // Freeze the seat index
             setBetSizingVisible(true);
             return;
         }
@@ -496,7 +549,7 @@ export default function HandHistoriesScreen() {
             const newSeats = [...seats];
             newSeats[activeSeatIndex] = { ...newSeats[activeSeatIndex], isFolded: true };
             setSeats(newSeats);
-            advanceSeat(newSeats);
+            advanceSeat(newSeats, activeSeatIndex);
             return;
         }
 
@@ -526,7 +579,7 @@ export default function HandHistoriesScreen() {
                 isAllIn,
             };
             setSeats(newSeats);
-            advanceSeat(newSeats);
+            advanceSeat(newSeats, activeSeatIndex);
             return;
         }
 
@@ -548,7 +601,8 @@ export default function HandHistoriesScreen() {
     // Bet/Raise confirmed from modal
     const handleBetConfirm = useCallback((amount: number) => {
         setBetSizingVisible(false);
-        const seat = seats[activeSeatIndex];
+        const seatIdx = pendingSeatIndexRef.current; // Use frozen seat index
+        const seat = seats[seatIdx];
         const snapshot = makeSnapshot();
         const additionalCost = amount - seat.currentBet;
         const isAllIn = additionalCost >= seat.stack;
@@ -566,17 +620,17 @@ export default function HandHistoriesScreen() {
         setActions(prev => [...prev, record]);
         setRedoStack([]);
         const newSeats = [...seats];
-        newSeats[activeSeatIndex] = {
-            ...newSeats[activeSeatIndex],
+        newSeats[seatIdx] = {
+            ...newSeats[seatIdx],
             currentBet: actualBet,
             stack: seat.stack - actualCost,
             isAllIn,
         };
         setSeats(newSeats);
         // Bet/raise = aggressive action → set last aggressor
-        setLastAggressorIndex(activeSeatIndex);
-        advanceSeat(newSeats);
-    }, [activeSeatIndex, seats, pendingBetAction, advanceSeat, makeSnapshot]);
+        setLastAggressorIndex(seatIdx);
+        advanceSeat(newSeats, seatIdx, seatIdx);
+    }, [seats, pendingBetAction, advanceSeat, makeSnapshot]);
 
     const handleBetCancel = useCallback(() => {
         setBetSizingVisible(false);
@@ -602,15 +656,38 @@ export default function HandHistoriesScreen() {
         });
 
         try {
-            // Open native share sheet
-            await Share.share({
-                message: hhText,
-                title: 'Hand History',
-            });
-            showToast('Hand history shared', 'success');
-        } catch (error) {
-            // User cancelled share
-            showToast('Share cancelled', 'info');
+            // Write HH to a .txt file and share it (SDK 54 File API)
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const fileName = `hand_history_${timestamp}.txt`;
+            const file = new ExpoFile(Paths.cache, fileName);
+
+            file.write(hhText);
+
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(file.uri, {
+                    mimeType: 'text/plain',
+                    dialogTitle: 'Share Hand History',
+                    UTI: 'public.plain-text',
+                });
+                showToast('Hand history shared', 'success');
+            } else {
+                // Fallback: share as raw text if file sharing unavailable
+                await Share.share({ message: hhText, title: 'Hand History' });
+                showToast('Hand history shared as text', 'success');
+            }
+        } catch (error: any) {
+            if (error?.message?.includes('cancel')) {
+                showToast('Share cancelled', 'info');
+            } else {
+                console.error('Share error:', error);
+                // Fallback to raw text share
+                try {
+                    await Share.share({ message: hhText, title: 'Hand History' });
+                    showToast('Shared as text (file sharing unavailable)', 'info');
+                } catch {
+                    showToast('Share failed', 'error');
+                }
+            }
         }
     }, [actions, seats, communityCards, stakes, tableSize, pot, pots, showToast]);
 
@@ -781,9 +858,9 @@ export default function HandHistoriesScreen() {
             const newSeats = [...seats];
             newSeats[seatIdx] = { ...newSeats[seatIdx], isFolded: true };
             setSeats(newSeats);
-            advanceSeat(newSeats);
+            advanceSeat(newSeats, seatIdx);
         } else if (action.action === 'check') {
-            advanceSeat();
+            advanceSeat(undefined, seatIdx);
         } else if (action.action === 'call' && action.amount) {
             const newSeats = [...seats];
             newSeats[seatIdx] = {
@@ -792,7 +869,7 @@ export default function HandHistoriesScreen() {
                 stack: seats[seatIdx].stack - action.amount,
             };
             setSeats(newSeats);
-            advanceSeat(newSeats);
+            advanceSeat(newSeats, seatIdx);
         } else if ((action.action === 'bet' || action.action === 'raise' || action.action === 'all-in') && action.amount) {
             const additionalCost = action.amount - seats[seatIdx].currentBet;
             const actualCost = Math.min(additionalCost, seats[seatIdx].stack);
@@ -806,7 +883,7 @@ export default function HandHistoriesScreen() {
             };
             setSeats(newSeats);
             setLastAggressorIndex(seatIdx);
-            advanceSeat(newSeats);
+            advanceSeat(newSeats, seatIdx, seatIdx);
         }
     }, [redoStack, seats, advanceSeat]);
 
@@ -948,8 +1025,12 @@ export default function HandHistoriesScreen() {
                 stack={modalStack}
                 isBoardMode={isBoardMode}
                 usedCards={usedCards}
+                communityCards={communityCards}
+                currentBoardSlot={currentBoardSlot}
                 onClose={handleSeatModalClose}
                 onCardAssigned={handleCardAssigned}
+                onBoardCardRemove={handleBoardCardRemove}
+                onBoardSlotSelect={handleBoardSlotSelect}
                 onHero={handleHero}
                 showToast={showToast}
             />

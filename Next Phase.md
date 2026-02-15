@@ -1,6 +1,6 @@
 # Turn Pro Poker - Development Roadmap
 
-> **📍 Current Status:** Phase 5 Batches 1–5 & UI Polish complete. Hand replayer fully functional.
+> **📍 Current Status:** Phase 5 Batches 1–8 & UI Polish complete. Hand replayer fully functional.
 > **🎯 Next Priority:** Remaining "coming soon" features + iOS build
 
 ---
@@ -169,7 +169,8 @@
 - [x] Safe-edit workflow created (`.agent/workflows/safe-edit.md`) for git-based code reverts
 
 ### UI Polish (Remaining)
-- [ ] Hand replayer animations (Share/Play buttons show "coming soon")
+- [x] Hand replayer play animation (auto-replay at 800ms, pause/resume)
+- [x] File-based HH sharing (.txt) — SDK 54 File API, share sheet integration
 
 ### Batch 5: Hand Replayer Game Logic ✅ COMPLETE
 - [x] Pot calculations with stack restrictions (can't bet/call more than stack)
@@ -211,7 +212,21 @@
 - [x] Rake support in HH export
 - [x] Font size increased on seat boxes (9 → 11)
 
-> ⚠️ **File-based HH sharing (.txt)** requires a native rebuild (`eas build`). Currently uses RN `Share.share()` which sends raw text — `***` formatting is correct but WhatsApp PC renders it as markdown.
+> ✅ **File-based HH sharing (.txt)** implemented using SDK 54 File API with `Sharing.shareAsync()`. Works on both iOS and Android.
+
+### Batch 8: HH Sharing, Game Logic Fixes, Card Redesign ✅ COMPLETE
+- [x] .txt file sharing via SDK 54 File API (`Sharing.shareAsync`)
+- [x] HH formatter fix — `nameMap` from current seats instead of stale prevState
+- [x] PT4 import fix — always emit collected line in HH summary
+- [x] advanceSeat stale closure fix — explicit params instead of closure values
+- [x] Spurious side pots fix — `calculateSidePots` guarded behind `hasAllIn` check
+- [x] Non-destructive `handleHero` — preserves bets/stacks mid-hand
+- [x] Frozen seat ref — `pendingSeatIndexRef` prevents stale bet target
+- [x] Board card picker redesign — compact 2×7 rank grid, tappable community card header
+- [x] Card visual redesign — gradient backgrounds (expo-linear-gradient), crisp dark suit colors
+- [x] White suit icons — forced text rendering via `\uFE0E` selector
+- [x] Board cards bigger — `size="large"` (36×50) in PokerTable.tsx
+- [x] Editing rules workflow — `.agent/workflows/editing-rules.md` (NUCLEAR BLOCK)
 
 ### More Page — "Coming Soon" Items
 - [ ] Player Profiles
@@ -331,9 +346,14 @@
 - Seat info box — horizontal `[BU | 1,000]` with `[+]` button below
 - Hero designation — green glow, "Hero" name in HH export
 - HH formatter — display names (Hero, BU), rake support, PT4-compatible format
+- HH .txt file sharing — SDK 54 File API, share sheet
+- Board card picker redesign — compact 2×7 rank grid, tappable community card header, slot navigation
+- Card visual redesign — gradient backgrounds (expo-linear-gradient), crisp dark suit colors, white suit icons
+- Game logic fixes — advanceSeat, side pots, non-destructive hero, frozen seat ref
 
 ### Development Workflows
 - Safe-edit workflow (`.agent/workflows/safe-edit.md`) — git commit before/after edits, backup copies, git-based reverts
+- Editing rules workflow (`.agent/workflows/editing-rules.md`) — NUCLEAR BLOCK, must read before any code change
 
 ---
 

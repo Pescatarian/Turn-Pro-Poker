@@ -1,7 +1,7 @@
 # Turn Pro Poker - Implementation Plan
 
-> **Status as of Feb 14, 2026**  
-> Phase 5 Batches 1–5 & UI Polish complete. Hand replayer fully functional with pot calculations, street progression, undo/redo navigation, action history with street separators, and community card dealing.  
+> **Status as of Feb 15, 2026**  
+> Phase 5 Batches 1–8 & UI Polish complete. Hand replayer fully functional with pot calculations, street progression, undo/redo navigation, action history with street separators, community card dealing, play animation, seat box redesign, hero feature, .txt HH sharing, card visual redesign, and compact board card picker.  
 > **Next:** Remaining "coming soon" features, iOS build.
 
 ---
@@ -56,6 +56,15 @@
 - **Tab navigator** - `lazy={false}` eliminates first-navigation flash
 - **Stats page filters** - FilterChips (time-range + venue), PrivacyContext, skeleton loader, pull-to-refresh
 - **Safe-edit workflow** - git commit before/after edits, backup copies, `.agent/workflows/safe-edit.md`
+- **Seat box redesign** — horizontal `[BU | 1,000]` info box, `[+]` button, BTN→BU display rename
+- **Hero feature** — green glow designation, "Hero" name in HH export, one hero at a time
+- **Play animation** — auto-replay at 800ms intervals, pause/resume, rewind to initial state
+- **HH export** — PokerStars format, PT4-compatible, `dn()` display name helper, rake support
+- **HH .txt file sharing** — SDK 54 File API, share sheet integration
+- **Board card picker redesign** — compact 2×7 rank grid, tappable community card header, slot navigation
+- **Card visual redesign** — gradient backgrounds (expo-linear-gradient), crisp dark suit colors, white suit icons, big center rank
+- **Game logic fixes** — advanceSeat stale closure fix, spurious side pot guard, non-destructive handleHero, frozen seat ref
+- **Editing rules workflow** — `.agent/workflows/editing-rules.md` (NUCLEAR BLOCK)
 - Basic tests (5/11 passing — 6 pre-existing failures, see Verification Plan below for details)
 
 ### ⏳ Blocked (LOW PRIORITY)
@@ -63,7 +72,6 @@
 
 ### ⏳ Upcoming
 - Remaining "coming soon" items (Player Profiles, Locations, Notepad, Calendar, PDF Export)
-- Hand replayer animations (Share/Play currently "coming soon")
 - iOS build
 - Comprehensive testing
 - App Store submission
@@ -96,13 +104,12 @@ flowchart LR
 **Stats ✅ Done:** FilterChips, PrivacyContext, skeleton loader, chart, pull-to-refresh.  
 **UI Polish ✅ Done:** Toasts, error boundary, skeletons, header cleanup, tab lazy loading.
 
-**Hands Replayer ✅ Done:** Full game logic — pot calculations with stack restrictions, street closing with check-around detection, community card dealing (auto-modal, waitingForBoard gating), undo/redo navigation with cross-street state snapshots, action history with street separators, unknown card picker, New Hand reset button.
+**Hands Replayer ✅ Done:** Full game logic — pot calculations with stack restrictions, street closing with check-around detection, community card dealing (auto-modal, waitingForBoard gating), undo/redo navigation with cross-street state snapshots, action history with street separators, unknown card picker, New Hand reset button, play animation (800ms auto-replay), seat box redesign (horizontal info box + `[+]` button), hero designation (green glow), .txt file sharing, compact board card picker (2×7 grid with tappable header), card visual redesign (gradient backgrounds, crisp dark colors, white suit icons).
 
 **Next Steps:**
 1. Build out "coming soon" features (Locations, Calendar, Player Profiles, Notepad, PDF Export)
-2. Hand replayer animations (Share/Play currently "coming soon")
-3. iOS build + TestFlight testing
-4. Fix pre-existing test failures, increase coverage
+2. iOS build + TestFlight testing
+3. Fix pre-existing test failures, increase coverage
 
 **ETA:** 2-3 weeks
 
@@ -136,17 +143,22 @@ npx eas-cli update --branch preview --message "Your changes"
 |-------|--------------|---------|
 | Backend Deployment | 2-3 days | ✅ Complete |
 | Server Sync | 3-5 days | ✅ Complete |
-| **Hot-Reload Setup** | **1 day** | ✅ **Complete** |
+| Hot-Reload Setup | 1 day | ✅ Complete |
 | RevenueCat Setup | 3-4 days | ⏳ Blocked (Play Console) |
-| **Feature Batch 1** | **2 days** | ✅ **Complete** |
-| **Feature Batch 2** | **3 days** | ✅ **Complete** |
-| UI Polish | 1-2 weeks | ⏳ Next |
+| Feature Batch 1 (Core UX) | 2 days | ✅ Complete |
+| Feature Batch 2 (Dashboard/Privacy) | 3 days | ✅ Complete |
+| Feature Batch 3 (UI Polish) | 2 days | ✅ Complete |
+| Feature Batch 4 (Replayer Enhancements) | 2 days | ✅ Complete |
+| Feature Batch 5 (Replayer Game Logic) | 3 days | ✅ Complete |
+| Feature Batch 6 (Multi-pot/Auth) | 2 days | ✅ Complete |
+| Feature Batch 7 (Seat Box/Hero) | 1 day | ✅ Complete |
+| "Coming soon" features | 1-2 weeks | ⏳ Next |
 | iOS Build | 2-3 days | 🔜 Soon |
 | RevenueCat Testing | 3-4 days | ⏳ LOW PRIORITY |
-| Testing | 1 week | 🔜 Soon |
+| Testing & QA | 1 week | 🔜 Soon |
 | Store Submission | 1 week | 🔜 Soon |
 
-**Total: 5-7 weeks to launch** (improved with hot-reload workflow!)
+**Total: 3-5 weeks remaining** (Batches 1-7 complete!)
 
 ---
 
@@ -235,9 +247,10 @@ cd frontend && npm test -- --coverage
 - `frontend/components/replayer/ActionHistoryModal.tsx` - Action log with street separators ✅
 - `frontend/components/replayer/ActionHistory.tsx` - ActionRecord types with street, prevState snapshots ✅
 - `frontend/components/replayer/BetSizingModal.tsx` - Bet/raise sizing with stack restrictions ✅
-- `frontend/components/replayer/Card.tsx` - Card renderer (with unknown '?' card support) ✅
-- `frontend/components/replayer/SeatModal.tsx` - Card/suit picker with unknown card button ✅
+- `frontend/components/replayer/Card.tsx` - Card renderer (gradient backgrounds, crisp dark suit colors, white suit icons, big center rank) ✅
+- `frontend/components/replayer/SeatModal.tsx` - Board card picker (compact 2×7 rank grid, tappable community card header) ✅
 - `.agent/workflows/safe-edit.md` - Safe code editing workflow (git-based reverts) ✅
+- `.agent/workflows/editing-rules.md` - NUCLEAR BLOCK editing rules (must read before any code change) ✅
 
 **Configuration:**
 - `frontend/eas.json` - EAS Build and Update configuration ✅
@@ -248,7 +261,7 @@ cd frontend && npm test -- --coverage
 
 ## Next 3 Steps
 
-1. **"Coming soon" features** — Locations page, Calendar view, Player Profiles, Notepad, PDF Export
+1. **"Coming soon" features** — Player Profiles, Locations page, Calendar view, Notepad, PDF Export
 2. **iOS build** — configure bundle ID, EAS build, TestFlight testing
 3. **Testing & QA** — fix pre-existing test failures, increase coverage, E2E tests
 

@@ -107,9 +107,10 @@ export function formatHandHistory(input: HandHistoryInput): string {
     const DISPLAY_POS: Record<string, string> = { BTN: 'BU' };
 
     // Build position → display name mapping
-    // Hero seat uses "Hero", linked players use playerName, others use display position
+    // Uses current seats (input.seats) which have isHero and playerName set,
+    // NOT initialSeats which may be from a prevState snapshot before Hero was designated.
     const nameMap: Record<string, string> = {};
-    initialSeats.forEach(seat => {
+    input.seats.forEach(seat => {
         if (seat.playerName) {
             nameMap[seat.position] = seat.playerName;
         } else if (seat.isHero) {
@@ -271,7 +272,7 @@ export function formatHandHistory(input: HandHistoryInput): string {
         lines.push(`Board ${formatCards(boardCards)}`);
     }
 
-    // Per-seat summary
+    // Per-seat summary — PT4 requires exactly one "collected" line to validate the pot
     const streetDisplayName = (street: string) => {
         switch (street) {
             case 'preflop': return 'Flop';  // "folded before Flop"
@@ -280,6 +281,13 @@ export function formatHandHistory(input: HandHistoryInput): string {
             default: return '';
         }
     };
+
+    const nonFoldedSeats = occupiedSeats.filter(s => !seatFoldStreet[s.position]);
+
+    // Determine winner:
+    // - Uncontested: the one remaining player
+    // - Multi-way showdown: first non-folded player (replayer doesn't evaluate hands)
+    const winnerPos = nonFoldedSeats.length > 0 ? nonFoldedSeats[0].position : null;
 
     occupiedSeats.forEach(seat => {
         const seatNum = initialSeats.indexOf(seat) + 1;
@@ -296,19 +304,14 @@ export function formatHandHistory(input: HandHistoryInput): string {
             } else {
                 lines.push(`Seat ${seatNum}: ${name}${posStr} folded on the ${streetDisplayName(foldStreet)}`);
             }
-        } else if (!seat.isFolded) {
-            // Check if this is a showdown situation or they won uncontested
-            const hasShowdown = lastStreetPrinted === 'showdown' || actions.some(a => a.street === 'showdown');
+        } else if (seat.position === winnerPos) {
+            // Winner — must have collected line for PT4
+            lines.push(`Seat ${seatNum}: ${name}${posStr} collected (${formatAmount(collected)})`);
+        } else {
+            // Non-folded loser at showdown
             const hasCards = seat.cards.length > 0 && seat.cards.some(c => c && !c.startsWith('?'));
-            // For now mark non-folded players as collected (winner) or mucked
-            // A simple heuristic: if only one player remains, they collected
-            const nonFolded = occupiedSeats.filter(s => !seatFoldStreet[s.position]);
-            if (nonFolded.length === 1) {
-                // Uncontested winner
-                lines.push(`Seat ${seatNum}: ${name}${posStr} collected (${formatAmount(collected)})`);
-            } else if (hasCards) {
-                // Went to showdown with cards
-                lines.push(`Seat ${seatNum}: ${name}${posStr} showed ${formatCards(seat.cards)}`);
+            if (hasCards) {
+                lines.push(`Seat ${seatNum}: ${name}${posStr} mucked ${formatCards(seat.cards)}`);
             } else {
                 lines.push(`Seat ${seatNum}: ${name}${posStr} mucked`);
             }

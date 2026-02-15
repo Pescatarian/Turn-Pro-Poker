@@ -253,7 +253,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                                     <Card
                                         rank={parsed?.rank}
                                         suit={parsed?.suit}
-                                        size="normal"
+                                        size="large"
                                     />
                                 </TouchableOpacity>
                             );

@@ -186,6 +186,18 @@
 - [x] `ActionRecord` includes `street` and `prevState` snapshot for full undo fidelity
 - [x] Table size change and new hand both clear redo stack
 
+### Batch 6: Hand Replayer Refinements & Auth ✅ COMPLETE
+- [x] Multi-pot display — vertical stacked layout (Main: X / Side: Y) with smaller font
+- [x] HU all-in fix — no false side pots, excess chips returned to bigger stack
+- [x] 3+ player side pot fix — single-eligible pots return excess to player (no false Side 2)
+- [x] All-in state logic — `allPlayersAllIn` threshold changed to `active===0` (BB can act after all-ins)
+- [x] Disabled buttons layout — all 3 buttons shown grayed out when disabled (no lone Fold)
+- [x] Active player glow — red (#ef4444) border + shadow on seat-to-act
+- [x] BB option preflop — `lastAggressorIndex` set to UTG so BB gets to check/raise when all limp
+- [x] Seat modal fix — `localStack` syncs with `stack` prop via useEffect on reopen
+- [x] Persistent login — token only deleted on explicit 401, network errors keep user logged in
+- [x] Auto-advance streets when all players all-in (useEffect triggers collectAndAdvance)
+
 ### More Page — "Coming Soon" Items
 - [ ] Player Profiles
 - [ ] Locations management page

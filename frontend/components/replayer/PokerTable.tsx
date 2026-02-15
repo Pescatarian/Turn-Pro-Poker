@@ -25,8 +25,10 @@ interface PokerTableProps {
     seats: SeatData[];
     communityCards: string[]; // e.g. ['Ah', '2c', 'Td', '', '']
     pot: number;
+    pots?: { amount: number; eligible: number[] }[]; // side pots for 3+ player all-in
     stakes: string;
     tableSize: number;
+    activeSeatIndex?: number; // index of the player whose turn it is
     onPressSeat: (seatIndex: number) => void;
     onPressBoardSlot: (slotIndex: number) => void;
     showCards?: boolean;
@@ -207,8 +209,10 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     seats,
     communityCards,
     pot,
+    pots = [],
     stakes,
     tableSize,
+    activeSeatIndex,
     onPressSeat,
     onPressBoardSlot,
     showCards = true,
@@ -251,7 +255,17 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                     </View>
 
                     {/* Pot — below cards */}
-                    <Text style={styles.potText}>Pot: {formatAmount(pot, displayMode, bb)}</Text>
+                    {pots.length > 1 ? (
+                        <View style={styles.potMulti}>
+                            {pots.map((p, i) => (
+                                <Text key={i} style={styles.potTextSmall}>
+                                    {i === 0 ? 'Main' : `Side${pots.length > 2 ? ` ${i}` : ''}`}: {formatAmount(p.amount, displayMode, bb)}
+                                </Text>
+                            ))}
+                        </View>
+                    ) : (
+                        <Text style={styles.potText}>Pot: {formatAmount(pot, displayMode, bb)}</Text>
+                    )}
                 </LinearGradient>
             </View>
 
@@ -300,7 +314,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                             <View style={[
                                 styles.seatInfo,
                                 seat.isHero && styles.seatInfoHero,
-                                seat.isActive && styles.seatInfoActive,
+                                activeSeatIndex === i && !seat.isFolded && !seat.isAllIn && styles.seatInfoActive,
                             ]}>
                                 <Text style={[styles.posLabel, seat.isHero && styles.posLabelHero]}>
                                     {seat.position}
@@ -380,6 +394,17 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginTop: 6,
     },
+    potMulti: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 1,
+        marginTop: 4,
+    },
+    potTextSmall: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: 12,
+    },
 
     // Seats overlay
     seatsOverlay: {
@@ -415,11 +440,13 @@ const styles = StyleSheet.create({
         borderColor: '#10b981',
     },
     seatInfoActive: {
-        shadowColor: '#10b981',
+        borderWidth: 2.5,
+        borderColor: '#ef4444',
+        shadowColor: '#ef4444',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 1,
-        shadowRadius: 3,
-        elevation: 4,
+        shadowRadius: 14,
+        elevation: 12,
     },
     posLabel: {
         fontSize: 9,

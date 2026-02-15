@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal } from 'react-native';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -40,6 +40,14 @@ export const SeatModal: React.FC<SeatModalProps> = ({
 }) => {
     const [selectedRank, setSelectedRank] = useState<string | null>(null);
     const [localStack, setLocalStack] = useState(String(stack));
+
+    // Sync localStack when modal opens for a different player
+    useEffect(() => {
+        if (visible) {
+            setLocalStack(String(stack));
+            setSelectedRank(null);
+        }
+    }, [visible, stack]);
 
     const handleSelectRank = useCallback((rank: string) => {
         setSelectedRank(rank);

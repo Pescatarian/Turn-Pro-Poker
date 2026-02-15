@@ -25,55 +25,71 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 }) => {
     return (
         <View style={styles.container}>
-            {/* Fold — always visible but can be disabled */}
-            <TouchableOpacity
-                style={[styles.btn, { backgroundColor: disabled ? '#3a3a3a' : '#6c757d' }]}
-                onPress={() => onAction('fold')}
-                activeOpacity={0.7}
-                disabled={disabled}
-            >
-                <Text style={[styles.label, { color: disabled ? '#666' : '#fff' }]}>Fold</Text>
-            </TouchableOpacity>
+            {/* When disabled, show all 3 buttons grayed out to fill the row evenly */}
+            {disabled ? (
+                <>
+                    <View style={[styles.btn, { backgroundColor: '#3a3a3a' }]}>
+                        <Text style={[styles.label, { color: '#666' }]}>Fold</Text>
+                    </View>
+                    <View style={[styles.btn, { backgroundColor: '#3a3a3a' }]}>
+                        <Text style={[styles.label, { color: '#666' }]}>Check</Text>
+                    </View>
+                    <View style={[styles.btn, { backgroundColor: '#3a3a3a' }]}>
+                        <Text style={[styles.label, { color: '#666' }]}>Bet</Text>
+                    </View>
+                </>
+            ) : (
+                <>
+                    {/* Fold — always visible */}
+                    <TouchableOpacity
+                        style={[styles.btn, { backgroundColor: '#6c757d' }]}
+                        onPress={() => onAction('fold')}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={[styles.label, { color: '#fff' }]}>Fold</Text>
+                    </TouchableOpacity>
 
-            {/* Check or Call (mutually exclusive) */}
-            {canCheck ? (
-                <TouchableOpacity
-                    style={[styles.btn, { backgroundColor: '#10b981' }]}
-                    onPress={() => onAction('check')}
-                    activeOpacity={0.7}
-                >
-                    <Text style={[styles.label, { color: '#fff' }]}>Check</Text>
-                </TouchableOpacity>
-            ) : canCall ? (
-                <TouchableOpacity
-                    style={[styles.btn, { backgroundColor: '#10b981' }]}
-                    onPress={() => onAction('call')}
-                    activeOpacity={0.7}
-                >
-                    <Text style={[styles.label, { color: '#fff' }]}>
-                        Call{callAmount ? ` ${callAmount}` : ''}
-                    </Text>
-                </TouchableOpacity>
-            ) : null}
+                    {/* Check or Call (mutually exclusive) */}
+                    {canCheck ? (
+                        <TouchableOpacity
+                            style={[styles.btn, { backgroundColor: '#10b981' }]}
+                            onPress={() => onAction('check')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.label, { color: '#fff' }]}>Check</Text>
+                        </TouchableOpacity>
+                    ) : canCall ? (
+                        <TouchableOpacity
+                            style={[styles.btn, { backgroundColor: '#10b981' }]}
+                            onPress={() => onAction('call')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.label, { color: '#fff' }]}>
+                                Call{callAmount ? ` ${callAmount}` : ''}
+                            </Text>
+                        </TouchableOpacity>
+                    ) : null}
 
-            {/* Bet or Raise (mutually exclusive) */}
-            {canBet ? (
-                <TouchableOpacity
-                    style={[styles.btn, { backgroundColor: '#f97316' }]}
-                    onPress={() => onAction('bet')}
-                    activeOpacity={0.7}
-                >
-                    <Text style={[styles.label, { color: '#fff' }]}>Bet</Text>
-                </TouchableOpacity>
-            ) : canRaise ? (
-                <TouchableOpacity
-                    style={[styles.btn, { backgroundColor: '#ef4444' }]}
-                    onPress={() => onAction('raise')}
-                    activeOpacity={0.7}
-                >
-                    <Text style={[styles.label, { color: '#fff' }]}>Raise</Text>
-                </TouchableOpacity>
-            ) : null}
+                    {/* Bet or Raise (mutually exclusive) */}
+                    {canBet ? (
+                        <TouchableOpacity
+                            style={[styles.btn, { backgroundColor: '#f97316' }]}
+                            onPress={() => onAction('bet')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.label, { color: '#fff' }]}>Bet</Text>
+                        </TouchableOpacity>
+                    ) : canRaise ? (
+                        <TouchableOpacity
+                            style={[styles.btn, { backgroundColor: '#ef4444' }]}
+                            onPress={() => onAction('raise')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.label, { color: '#fff' }]}>Raise</Text>
+                        </TouchableOpacity>
+                    ) : null}
+                </>
+            )}
         </View>
     );
 };

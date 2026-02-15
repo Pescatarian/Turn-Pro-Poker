@@ -69,52 +69,81 @@ const NEXT_STREET: Record<Street, Street> = {
     showdown: 'showdown',
 };
 
-// Calculate side pots from per-seat total bets this street
-function calculateSidePots(seats: SeatData[]): PotInfo[] {
+// Calculate side pots from per-seat total bets this street.
+// In heads-up (2 non-folded players), no side pot is created — excess returns to bigger stack.
+// Side pots only apply with 3+ non-folded players when someone is all-in for less.
+// Returns: { pots, excessReturn: { seatIndex, amount } | null }
+function calculateSidePots(seats: SeatData[]): {
+    pots: PotInfo[];
+    excessReturn: { seatIndex: number; amount: number } | null;
+} {
+    const nonFolded = seats
+        .map((s, i) => ({ index: i, bet: s.currentBet, folded: s.isFolded, isAllIn: s.isAllIn }))
+        .filter(b => !b.folded);
+
     // Gather bets from non-folded seats that have bet something
-    const bettors = seats
-        .map((s, i) => ({ index: i, bet: s.currentBet, folded: s.isFolded }))
-        .filter(b => b.bet > 0);
+    const bettors = nonFolded.filter(b => b.bet > 0);
 
-    if (bettors.length === 0) return [];
+    if (bettors.length === 0) return { pots: [], excessReturn: null };
 
-    // Get unique bet levels from all-in players (they cap sub-pots)
-    const allInLevels = seats
-        .map((s, i) => ({ index: i, bet: s.currentBet, isAllIn: s.isAllIn }))
+    // --- HU all-in: no side pots, excess returns to bigger stack ---
+    if (nonFolded.length === 2) {
+        const hasAllIn = nonFolded.some(b => b.isAllIn);
+        if (hasAllIn) {
+            const effectiveStack = Math.min(...bettors.map(b => b.bet));
+            const mainPotAmount = effectiveStack * bettors.length;
+            const eligible = bettors.map(b => b.index);
+            // Find the player who bet more and calculate excess
+            const bigBettor = bettors.find(b => b.bet > effectiveStack);
+            const excessReturn = bigBettor
+                ? { seatIndex: bigBettor.index, amount: bigBettor.bet - effectiveStack }
+                : null;
+            return {
+                pots: [{ amount: mainPotAmount, eligible }],
+                excessReturn,
+            };
+        }
+    }
+
+    // --- 3+ players: standard side pot calculation ---
+    const allInLevels = nonFolded
         .filter(b => b.isAllIn && b.bet > 0)
         .map(b => b.bet)
         .sort((a, b) => a - b);
 
-    // Add the max bet level for the main group
     const maxBet = Math.max(...bettors.map(b => b.bet));
     const levels = [...new Set([...allInLevels, maxBet])].sort((a, b) => a - b);
 
     const pots: PotInfo[] = [];
     let prevLevel = 0;
+    let excessReturn: { seatIndex: number; amount: number } | null = null;
 
     for (const level of levels) {
         const slice = level - prevLevel;
         if (slice <= 0) continue;
 
-        // Count how many players contribute at this level
         const eligible: number[] = [];
         let potAmount = 0;
         for (const b of bettors) {
             if (b.bet >= level && !b.folded) {
                 eligible.push(b.index);
             }
-            // Each bettor contributes min(their remaining bet above prevLevel, slice)
             const contribution = Math.min(Math.max(b.bet - prevLevel, 0), slice);
             potAmount += contribution;
         }
 
         if (potAmount > 0) {
-            pots.push({ amount: potAmount, eligible });
+            // If only 1 player is eligible, this isn't a real pot — return it to them
+            if (eligible.length === 1) {
+                excessReturn = { seatIndex: eligible[0], amount: potAmount };
+            } else {
+                pots.push({ amount: potAmount, eligible });
+            }
         }
         prevLevel = level;
     }
 
-    return pots;
+    return { pots, excessReturn };
 }
 
 export default function HandHistoriesScreen() {
@@ -131,7 +160,7 @@ export default function HandHistoriesScreen() {
     const [pots, setPots] = useState<PotInfo[]>([]); // side pots (empty = single pot)
     const [currentStreet, setCurrentStreet] = useState<Street>('preflop');
     // Last aggressor: seat index that made the last bet/raise. Preflop: BB (index 2).
-    const [lastAggressorIndex, setLastAggressorIndex] = useState<number | null>(2);
+    const [lastAggressorIndex, setLastAggressorIndex] = useState<number | null>(null);
     // Whether we're waiting for community cards before action can continue
     const [waitingForBoard, setWaitingForBoard] = useState(false);
 
@@ -189,6 +218,17 @@ export default function HandHistoriesScreen() {
     const canBet = canCheck && facingBet === 0; // no bet yet (postflop)
     // canRaise: there's a facing bet OR we're preflop (blinds count)
     const canRaise = canCall || (canCheck && facingBet > 0);
+
+    // All-in state: disable actions when all non-folded players are all-in
+    // (or only 1 active player remains and rest are all-in)
+    const allPlayersAllIn = useMemo(() => {
+        const nonFolded = seats.filter(s => !s.isFolded);
+        const active = nonFolded.filter(s => !s.isAllIn);
+        return active.length === 0 && nonFolded.length > 1;
+    }, [seats]);
+
+    // Combined disabled flag for action buttons
+    const actionsDisabled = waitingForBoard || allPlayersAllIn || currentStreet === 'showdown';
 
     // --- Table Size Stepper ---
 
@@ -316,6 +356,8 @@ export default function HandHistoriesScreen() {
         // After rotation, seat with label at positions[utgLabelIndex] lands on seat index:
         const utgSeatIndex = ((utgLabelIndex - clickedLabelIndex) % tableSize + tableSize) % tableSize;
         setActiveSeatIndex(utgSeatIndex);
+        // Set UTG as last aggressor so preflop action goes around to BB before closing
+        setLastAggressorIndex(utgSeatIndex);
 
 
     }, [selectedSeatIndex, seats, tableSize, showToast, sb, bb]);
@@ -365,10 +407,19 @@ export default function HandHistoriesScreen() {
     // Collect bets from current street and advance to next
     const collectAndAdvance = useCallback((seatsNow: SeatData[]) => {
         const totalCollected = seatsNow.reduce((sum, s) => sum + s.currentBet, 0);
-        const sidePots = calculateSidePots(seatsNow);
+        const { pots: sidePots, excessReturn } = calculateSidePots(seatsNow);
         const newSeats = seatsNow.map(s => ({ ...s, currentBet: 0 }));
+        // In HU all-in, return excess chips to the bigger stack
+        let adjustedTotal = totalCollected;
+        if (excessReturn) {
+            newSeats[excessReturn.seatIndex] = {
+                ...newSeats[excessReturn.seatIndex],
+                stack: newSeats[excessReturn.seatIndex].stack + excessReturn.amount,
+            };
+            adjustedTotal -= excessReturn.amount;
+        }
         setSeats(newSeats);
-        setPot(prev => prev + totalCollected);
+        setPot(prev => prev + adjustedTotal);
         if (sidePots.length > 0) {
             setPots(prev => [...prev, ...sidePots]);
         }
@@ -390,6 +441,18 @@ export default function HandHistoriesScreen() {
             setSeatModalVisible(true);
         }
     }, [tableSize, currentStreet]);
+
+    // Auto-advance streets when all players are all-in and board cards were just dealt
+    // Flow: all-in → board modal → pick cards → waitingForBoard becomes false → auto-advance
+    useEffect(() => {
+        if (!waitingForBoard && allPlayersAllIn && currentStreet !== 'preflop' && currentStreet !== 'showdown') {
+            // Small delay to let the UI update before advancing
+            const timer = setTimeout(() => {
+                collectAndAdvance(seats);
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [waitingForBoard, allPlayersAllIn, currentStreet]);
 
     // Create state snapshot for undo
     const makeSnapshot = useCallback(() => ({
@@ -639,8 +702,10 @@ export default function HandHistoriesScreen() {
                         seats={seats}
                         communityCards={communityCards}
                         pot={pot + seats.reduce((s, seat) => s + seat.currentBet, 0)}
+                        pots={pots}
                         stakes={stakes}
                         tableSize={tableSize}
+                        activeSeatIndex={activeSeatIndex}
                         onPressSeat={handlePressSeat}
                         onPressBoardSlot={handlePressBoardSlot}
                         showCards={showCards}
@@ -718,15 +783,15 @@ export default function HandHistoriesScreen() {
                         </View>
                     </View>
 
-                    {/* Action Buttons — disabled when waiting for community cards */}
+                    {/* Action Buttons — disabled when waiting for community cards or all players all-in */}
                     <ActionButtons
                         onAction={handleAction}
-                        canCheck={!waitingForBoard && canCheck}
-                        canCall={!waitingForBoard && canCall}
-                        canBet={!waitingForBoard && canBet}
-                        canRaise={!waitingForBoard && canRaise}
+                        canCheck={!actionsDisabled && canCheck}
+                        canCall={!actionsDisabled && canCall}
+                        canBet={!actionsDisabled && canBet}
+                        canRaise={!actionsDisabled && canRaise}
                         callAmount={callAmount}
-                        disabled={waitingForBoard}
+                        disabled={actionsDisabled}
                     />
 
                     {/* Playback Controls */}

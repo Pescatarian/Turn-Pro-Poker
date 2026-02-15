@@ -27,7 +27,8 @@ npx expo start               # For Expo Go (limited features)
 - **Session Tracking**: Log buy-ins, cash-outs, game type, stakes, location
 - **Bankroll Management**: Track deposits, withdrawals, running balance
 - **Statistics**: Hourly rate, win rate, total profit, session history
-- **Hand Replayer**: 9-seat poker table, dealer button, bet chips, blind posting, pot calculations with stack restrictions, street progression (preflop→river), community card dealing, undo/redo navigation, action history with street separators, unknown card support
+- **Hand Replayer**: 9-seat poker table, dealer button, bet chips, blind posting, pot calculations with stack restrictions, street progression (preflop→river), community card dealing, undo/redo navigation, action history with street separators, unknown card support, multi-pot display (main + side pots), active player glow indicator, BB option preflop
+- **Persistent Login**: Stays logged in across sessions until explicit logout
 - **Privacy Mode**: Hide sensitive information
 - **Offline-First**: Works without internet, syncs when connected
 - **JWT Authentication**: Secure user accounts

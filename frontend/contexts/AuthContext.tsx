@@ -55,13 +55,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
                 const token = await storage.getItemAsync('token');
                 if (token) {
-                    // Verify token and get user info
-                    const response = await api.get('/users/me');
-                    setUser(response.data);
+                    try {
+                        // Verify token and get user info
+                        const response = await api.get('/users/me');
+                        setUser(response.data);
+                    } catch (apiError: any) {
+                        // Only delete token on explicit 401 (invalid/expired token)
+                        if (apiError?.response?.status === 401) {
+                            console.log('Auth token expired, logging out');
+                            await storage.deleteItemAsync('token');
+                        } else {
+                            // Network error, timeout, server down — trust the token
+                            // User stays logged in with minimal user object
+                            console.log('Auth check failed (network), staying logged in');
+                            setUser({ token, offline: true });
+                        }
+                    }
                 }
             } catch (error) {
-                console.log('Auth check failed:', error);
-                await storage.deleteItemAsync('token');
+                console.log('Storage error:', error);
             } finally {
                 setIsLoading(false);
             }

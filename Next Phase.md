@@ -198,6 +198,21 @@
 - [x] Persistent login — token only deleted on explicit 401, network errors keep user logged in
 - [x] Auto-advance streets when all players all-in (useEffect triggers collectAndAdvance)
 
+### Batch 7: Seat Box Redesign + Hero Feature ✅ COMPLETE
+- [x] Seat info box redesigned — horizontal `[BU | 1,000]` layout (was vertical)
+- [x] `[+]` button added below info box — same styling, opens seat modal
+- [x] Position display rename — BTN → BU via `DISPLAY_POS` map (internal logic unchanged)
+- [x] `playerName` field added to `SeatData` interface (for future player linking)
+- [x] "Sit Here" renamed to "Hero" in seat modal
+- [x] Hero designation — green glow on info box, "Hero" on `[+]` button, only one hero at a time
+- [x] "Link Player" / "Tag" buttons → "Coming soon" toast
+- [x] HH export updated — hero seat uses "Hero" as player name, BTN displays as "BU"
+- [x] HH export — `handHistoryFormatter.ts` uses `dn()` display name helper for all player references
+- [x] Rake support in HH export
+- [x] Font size increased on seat boxes (9 → 11)
+
+> ⚠️ **File-based HH sharing (.txt)** requires a native rebuild (`eas build`). Currently uses RN `Share.share()` which sends raw text — `***` formatting is correct but WhatsApp PC renders it as markdown.
+
 ### More Page — "Coming Soon" Items
 - [ ] Player Profiles
 - [ ] Locations management page
@@ -313,6 +328,9 @@
 - Unknown card (?) support in card picker and board rendering
 - Bet sizing modal with stack-restricted min/max
 - Playback controls (Share, Play, ←/→ undo/redo)
+- Seat info box — horizontal `[BU | 1,000]` with `[+]` button below
+- Hero designation — green glow, "Hero" name in HH export
+- HH formatter — display names (Hero, BU), rake support, PT4-compatible format
 
 ### Development Workflows
 - Safe-edit workflow (`.agent/workflows/safe-edit.md`) — git commit before/after edits, backup copies, git-based reverts
@@ -329,6 +347,8 @@
 - **Location Hook:** `frontend/hooks/useLocations.ts`
 - **Sessions Page:** `frontend/app/(tabs)/sessions/index.tsx` (swipe gestures + form UX)
 - **Poker Table Replayer:** `frontend/components/replayer/PokerTable.tsx` (9-seat table, dealer, chips)
+- **HH Formatter:** `frontend/components/replayer/handHistoryFormatter.ts` (PokerStars format, PT4 compatible)
+- **Seat Modal:** `frontend/components/replayer/SeatModal.tsx` (Hero, Link Player, Tag, card picker)
 - **Safe-Edit Workflow:** `.agent/workflows/safe-edit.md` (git-based revert process)
 
 ---

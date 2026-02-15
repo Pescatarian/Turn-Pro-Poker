@@ -1,17 +1,18 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, AppState, AppStateStatus } from 'react-native';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, AppState, AppStateStatus, Share } from 'react-native';
 import { ScreenWrapper } from '../../components/ui/ScreenWrapper';
 import { PokerTable, SeatData } from '../../components/replayer/PokerTable';
 import { SeatModal } from '../../components/replayer/SeatModal';
 import { ActionButtons, ActionType } from '../../components/replayer/ActionButtons';
 import { ActionRecord, Street, PotInfo } from '../../components/replayer/ActionHistory';
 import { ActionHistoryModal } from '../../components/replayer/ActionHistoryModal';
-import { NotesModal } from '../../components/replayer/NotesModal';
 import { PlaybackControls } from '../../components/replayer/PlaybackControls';
+import { NotesModal } from '../../components/replayer/NotesModal';
 import { BetSizingModal } from '../../components/replayer/BetSizingModal';
 import { COLORS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '../../components/ui/ToastProvider';
+import { formatHandHistory } from '../../components/replayer/handHistoryFormatter';
 
 // Position labels per table size (clockwise from BTN)
 const POSITION_MAP: Record<number, string[]> = {
@@ -192,6 +193,12 @@ export default function HandHistoriesScreen() {
     const [betSizingVisible, setBetSizingVisible] = useState(false);
     const [pendingBetAction, setPendingBetAction] = useState<'bet' | 'raise'>('bet');
 
+    // Playback animation state
+    const [isPlaying, setIsPlaying] = useState(false);
+    const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const playbackActionsRef = useRef<ActionRecord[]>([]);
+    const playbackStepRef = useRef(0);
+
     // Close all modals when the app goes to background (passcode activates)
     useEffect(() => {
         const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
@@ -228,7 +235,7 @@ export default function HandHistoriesScreen() {
     }, [seats]);
 
     // Combined disabled flag for action buttons
-    const actionsDisabled = waitingForBoard || allPlayersAllIn || currentStreet === 'showdown';
+    const actionsDisabled = waitingForBoard || allPlayersAllIn || currentStreet === 'showdown' || isPlaying;
 
     // --- Table Size Stepper ---
 
@@ -245,7 +252,7 @@ export default function HandHistoriesScreen() {
                 setPot(0);
                 setPots([]);
                 setCurrentStreet('preflop');
-                setLastAggressorIndex(2);
+                setLastAggressorIndex(null);
                 setWaitingForBoard(false);
                 setRedoStack([]);
             }
@@ -325,7 +332,7 @@ export default function HandHistoriesScreen() {
     }, [isBoardMode, currentBoardSlot, selectedSeatIndex, communityCards, seats]);
 
     // --- Hero Seat Rotation (ported from index.html selectHeroSeat) ---
-    const handleSitHere = useCallback(() => {
+    const handleHero = useCallback(() => {
         if (selectedSeatIndex === null) return;
 
         const positions = POSITION_MAP[tableSize] || POSITION_MAP[9];
@@ -575,13 +582,141 @@ export default function HandHistoriesScreen() {
         setBetSizingVisible(false);
     }, []);
 
-    const handleShare = useCallback(() => {
-        showToast('Hand sharing coming soon', 'info');
+    const handleShare = useCallback(async () => {
+        if (actions.length === 0) {
+            showToast('No actions to share', 'info');
+            return;
+        }
+
+        const { sb: curSb, bb: curBb } = parseStakes(stakes);
+        const hhText = formatHandHistory({
+            seats,
+            actions,
+            communityCards,
+            stakes,
+            tableSize,
+            pot,
+            pots,
+            sb: curSb,
+            bb: curBb,
+        });
+
+        try {
+            // Open native share sheet
+            await Share.share({
+                message: hhText,
+                title: 'Hand History',
+            });
+            showToast('Hand history shared', 'success');
+        } catch (error) {
+            // User cancelled share
+            showToast('Share cancelled', 'info');
+        }
+    }, [actions, seats, communityCards, stakes, tableSize, pot, pots, showToast]);
+
+    const stopPlayback = useCallback(() => {
+        if (playIntervalRef.current) {
+            clearInterval(playIntervalRef.current);
+            playIntervalRef.current = null;
+        }
+        setIsPlaying(false);
     }, []);
 
     const handlePlay = useCallback(() => {
-        showToast('Replay animation coming soon', 'info');
-    }, []);
+        // If already playing, pause/stop
+        if (isPlaying) {
+            stopPlayback();
+            return;
+        }
+
+        if (actions.length === 0) {
+            showToast('No actions to replay', 'info');
+            return;
+        }
+
+        // Check that first action has prevState (needed for rewind)
+        if (!actions[0].prevState) {
+            showToast('Cannot replay: missing state snapshots', 'info');
+            return;
+        }
+
+        // Save the full action list for playback
+        const allActions = [...actions];
+        playbackActionsRef.current = allActions;
+        playbackStepRef.current = 0;
+
+        // Save current (final) state so we can restore it after the last action
+        const finalState = {
+            seats: [...seats],
+            pot,
+            pots: [...pots],
+            activeSeatIndex,
+            currentStreet,
+            lastAggressorIndex,
+            communityCards: [...communityCards],
+            waitingForBoard,
+        };
+
+        // Rewind to initial state (before first action)
+        const initialState = allActions[0].prevState!;
+        setSeats(initialState.seats);
+        setPot(initialState.pot);
+        setPots(initialState.pots);
+        setActiveSeatIndex(initialState.activeSeatIndex);
+        setCurrentStreet(initialState.currentStreet);
+        setLastAggressorIndex(initialState.lastAggressorIndex);
+        setCommunityCards(initialState.communityCards);
+        setWaitingForBoard(initialState.waitingForBoard);
+        setActions([]);
+        setRedoStack([]);
+
+        setIsPlaying(true);
+
+        // Step through actions at 800ms intervals
+        playIntervalRef.current = setInterval(() => {
+            const step = playbackStepRef.current;
+            const actionsQueue = playbackActionsRef.current;
+
+            if (step >= actionsQueue.length) {
+                // Playback complete — stop
+                clearInterval(playIntervalRef.current!);
+                playIntervalRef.current = null;
+                setIsPlaying(false);
+                return;
+            }
+
+            // Determine the state AFTER this action
+            const nextStep = step + 1;
+
+            if (nextStep < actionsQueue.length && actionsQueue[nextStep].prevState) {
+                // The state after this action = the prevState of the next action
+                const afterState = actionsQueue[nextStep].prevState!;
+                setSeats(afterState.seats);
+                setPot(afterState.pot);
+                setPots(afterState.pots);
+                setActiveSeatIndex(afterState.activeSeatIndex);
+                setCurrentStreet(afterState.currentStreet);
+                setLastAggressorIndex(afterState.lastAggressorIndex);
+                setCommunityCards(afterState.communityCards);
+                setWaitingForBoard(afterState.waitingForBoard);
+            } else {
+                // Last action — restore the saved final state
+                setSeats(finalState.seats);
+                setPot(finalState.pot);
+                setPots(finalState.pots);
+                setActiveSeatIndex(finalState.activeSeatIndex);
+                setCurrentStreet(finalState.currentStreet);
+                setLastAggressorIndex(finalState.lastAggressorIndex);
+                setCommunityCards(finalState.communityCards);
+                setWaitingForBoard(finalState.waitingForBoard);
+            }
+
+            // Add this action to the visible action history
+            setActions(prev => [...prev, actionsQueue[step]]);
+
+            playbackStepRef.current = nextStep;
+        }, 800);
+    }, [isPlaying, actions, seats, pot, pots, activeSeatIndex, currentStreet, lastAggressorIndex, communityCards, waitingForBoard, stopPlayback, showToast]);
 
     const handleNewHand = useCallback(() => {
         const { sb: curSb, bb: curBb } = parseStakes(stakes);
@@ -593,7 +728,7 @@ export default function HandHistoriesScreen() {
         setPot(0);
         setPots([]);
         setCurrentStreet('preflop');
-        setLastAggressorIndex(2);
+        setLastAggressorIndex(null);
         setRedoStack([]);
         setWaitingForBoard(false);
     }, [stakes, tableSize]);
@@ -800,6 +935,8 @@ export default function HandHistoriesScreen() {
                         onPlay={handlePlay}
                         onPrev={handlePrev}
                         onNext={handleNext}
+                        isPlaying={isPlaying}
+                        hasActions={actions.length > 0}
                     />
                 </View>
             </View>
@@ -813,7 +950,8 @@ export default function HandHistoriesScreen() {
                 usedCards={usedCards}
                 onClose={handleSeatModalClose}
                 onCardAssigned={handleCardAssigned}
-                onSitHere={handleSitHere}
+                onHero={handleHero}
+                showToast={showToast}
             />
 
             {/* Action History Modal */}

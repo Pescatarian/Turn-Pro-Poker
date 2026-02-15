@@ -25,7 +25,8 @@ interface SeatModalProps {
     usedCards: Record<string, string>;
     onClose: (newStack?: number) => void;
     onCardAssigned: (card: string) => void;
-    onSitHere: () => void;
+    onHero: () => void;
+    showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 export const SeatModal: React.FC<SeatModalProps> = ({
@@ -36,7 +37,8 @@ export const SeatModal: React.FC<SeatModalProps> = ({
     usedCards,
     onClose,
     onCardAssigned,
-    onSitHere,
+    onHero,
+    showToast,
 }) => {
     const [selectedRank, setSelectedRank] = useState<string | null>(null);
     const [localStack, setLocalStack] = useState(String(stack));
@@ -98,15 +100,15 @@ export const SeatModal: React.FC<SeatModalProps> = ({
 
                             {!isBoardMode && (
                                 <>
-                                    <TouchableOpacity style={styles.actionBtn} onPress={onSitHere}>
-                                        <Text style={styles.actionBtnText}>Sit Here</Text>
+                                    <TouchableOpacity style={styles.actionBtn} onPress={onHero}>
+                                        <Text style={styles.actionBtnText}>Hero</Text>
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity style={styles.actionBtn}>
+                                    <TouchableOpacity style={styles.actionBtn} onPress={() => showToast?.('Coming soon', 'info')}>
                                         <Text style={styles.actionBtnText}>Link Player</Text>
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity style={styles.actionBtn}>
+                                    <TouchableOpacity style={styles.actionBtn} onPress={() => showToast?.('Coming soon', 'info')}>
                                         <Text style={styles.actionBtnText}>Tag</Text>
                                     </TouchableOpacity>
 

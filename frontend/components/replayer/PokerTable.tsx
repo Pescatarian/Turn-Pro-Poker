@@ -19,7 +19,13 @@ export interface SeatData {
     isActive: boolean;
     isAllIn: boolean;
     currentBet: number;
+    playerName?: string; // linked player name (future)
 }
+
+// Display abbreviations for positions (internal stays BTN for logic)
+const DISPLAY_POS: Record<string, string> = {
+    BTN: 'BU',
+};
 
 interface PokerTableProps {
     seats: SeatData[];
@@ -279,12 +285,13 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                     const card2 = parseCard(seat.cards[1]);
                     const hasCards = seat.cards.length > 0 && seat.cards.some(c => c);
 
+                    const displayPos = DISPLAY_POS[seat.position] || seat.position;
+                    const displayName = seat.playerName || (seat.isHero ? 'Hero' : displayPos);
+
                     return (
-                        <TouchableOpacity
+                        <View
                             key={`seat-${i}`}
                             style={[styles.seat, seatLayout.style, seat.isFolded && styles.seatFolded]}
-                            onPress={() => onPressSeat(i)}
-                            activeOpacity={0.7}
                         >
                             {/* Hole Cards — hidden when folded */}
                             {!seat.isFolded && (
@@ -310,19 +317,31 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                                 </View>
                             )}
 
-                            {/* Seat Info Box */}
+                            {/* Seat Info Box — horizontal [BU | 1,000] */}
                             <View style={[
                                 styles.seatInfo,
                                 seat.isHero && styles.seatInfoHero,
                                 activeSeatIndex === i && !seat.isFolded && !seat.isAllIn && styles.seatInfoActive,
                             ]}>
                                 <Text style={[styles.posLabel, seat.isHero && styles.posLabelHero]}>
-                                    {seat.position}
+                                    {displayPos}
                                 </Text>
+                                <Text style={styles.pipeSep}>|</Text>
                                 <Text style={styles.stackText}>
                                     {formatAmount(seat.stack, displayMode, bb)}
                                 </Text>
                             </View>
+
+                            {/* [+] Button — opens modal */}
+                            <TouchableOpacity
+                                style={[styles.plusButton, seat.isHero && styles.plusButtonHero]}
+                                onPress={() => onPressSeat(i)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[styles.plusText, seat.isHero && styles.plusTextHero]}>
+                                    {seat.isHero ? 'Hero' : '+'}
+                                </Text>
+                            </TouchableOpacity>
 
                             {/* Dealer Button — ♠ chip pointing inward */}
                             {seat.isDealer && (
@@ -342,7 +361,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                                     </Text>
                                 </View>
                             )}
-                        </TouchableOpacity>
+                        </View>
                     );
                 })}
             </View>
@@ -423,12 +442,17 @@ const styles = StyleSheet.create({
         gap: 2,
     },
     seatInfo: {
+        flexDirection: 'row',
         backgroundColor: '#fff',
         borderRadius: 6,
         paddingVertical: 3,
         paddingHorizontal: 7,
         alignItems: 'center',
-        minWidth: 48,
+        justifyContent: 'center',
+        gap: 4,
+        minWidth: 60,
+        borderWidth: 2,
+        borderColor: 'transparent',
     },
     seatInfoHero: {
         shadowColor: '#10b981',
@@ -436,7 +460,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 1,
         shadowRadius: 3,
         elevation: 4,
-        borderWidth: 2,
         borderColor: '#10b981',
     },
     seatInfoActive: {
@@ -449,23 +472,47 @@ const styles = StyleSheet.create({
         elevation: 12,
     },
     posLabel: {
-        fontSize: 9,
-        fontWeight: '600',
+        fontSize: 11,
+        fontWeight: '700',
         color: '#333',
     },
     posLabelHero: {
-        backgroundColor: '#10b981',
-        color: '#000',
-        paddingHorizontal: 5,
-        paddingVertical: 1,
-        borderRadius: 3,
-        fontSize: 8,
-        overflow: 'hidden',
+        color: '#10b981',
+        fontWeight: '800',
+    },
+    pipeSep: {
+        fontSize: 11,
+        color: '#999',
+        fontWeight: '400',
     },
     stackText: {
-        fontSize: 10,
+        fontSize: 11,
         color: '#000',
         fontWeight: '700',
+    },
+    plusButton: {
+        backgroundColor: '#fff',
+        borderRadius: 6,
+        paddingVertical: 3,
+        paddingHorizontal: 7,
+        alignItems: 'center',
+        justifyContent: 'center',
+        alignSelf: 'stretch',
+        marginTop: 2,
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    plusButtonHero: {
+        backgroundColor: '#10b981',
+    },
+    plusText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#333',
+    },
+    plusTextHero: {
+        color: '#fff',
+        fontWeight: '800',
     },
     dealerBtn: {
         position: 'absolute',
